@@ -81,9 +81,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       setUser(u);
       const liste = await rechargerOrgs();
       const active = await lireMeta("org_active");
-      setOrgActiveId(active && liste.some((o) => o.id === active) ? active : (liste[0]?.id ?? null));
+      const id = active && liste.some((o) => o.id === active) ? active : (liste[0]?.id ?? null);
+      // Les saisies faites hors compte sur cet appareil rejoignent l'organisation active,
+      // sinon elles resteraient invisibles et « à envoyer » pour toujours
+      if (id) await choisirOrg(id);
+      else setOrgActiveId(null);
     },
-    [rechargerOrgs],
+    [rechargerOrgs, choisirOrg],
   );
 
   // Démarrage : session sur le serveur si le réseau le permet, sinon celle gardée sur l'appareil
