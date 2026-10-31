@@ -10,6 +10,7 @@ import { Choix, Encart } from "@/components/choix";
 import { Liste, optionsDe } from "@/components/liste";
 import { useSession } from "@/components/session";
 import { db, enregistrer, enregistrerChantier, enregistrerPoint, maintenant, type Chantier, type Point } from "@/lib/db";
+import { ChampDate } from "@/components/champ-date";
 
 // Volet Contrôle de la fiche chantier, dans l'ordre réel du travail :
 // le chantier, ce qu'exige le cahier des charges, les moyens, les points, puis le résultat et la validation.
@@ -103,9 +104,7 @@ export function Controle({ chantier: c, points, resultat: r }: { chantier: Chant
           <label className="etiquette">Modèle et n° de série
             <input className="champ font-normal" value={c.appareil_modele} maxLength={200} onChange={(e) => maj({ appareil_modele: e.target.value })} />
           </label>
-          <label className="etiquette">Dernier étalonnage
-            <input type="date" className="champ font-normal" value={c.etalonnage_le ?? ""} onChange={(e) => maj({ etalonnage_le: e.target.value || null })} />
-          </label>
+          <ChampDate label="Dernier étalonnage" valeur={c.etalonnage_le} optionnel onChange={(etalonnage_le) => maj({ etalonnage_le })} />
         </div>
         <Choix
           legende="Système de coordonnées"

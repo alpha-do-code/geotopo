@@ -8,6 +8,7 @@ import { Encart } from "@/components/choix";
 import { enregistrer, type Chantier } from "@/lib/db";
 import { appliquerModele, definirDependance, nouvelleLigne, useGestion, type Dependance, type Tache } from "./donnees";
 import { Liste } from "@/components/liste";
+import { ChampDate } from "@/components/champ-date";
 
 const J = 28; // largeur d'un jour (px)
 const H = 40; // hauteur d'une ligne
@@ -34,9 +35,7 @@ function PlanningVide({ chantier: c }: { chantier: Chantier }) {
         Pars du modèle « {NATURES[c.nature]} » ({etapes.length} étapes, du « {etapes[0].titre.toLowerCase()} » au « {etapes.at(-1)!.titre.toLowerCase()} »), puis ajuste les dates en glissant les barres. Le jalon « Contrôle de précision » passe à 100 % quand le contrôle est validé.
       </p>
       <div className="flex flex-wrap items-end gap-3">
-        <label className="etiquette">Début des travaux
-          <input type="date" className="champ font-normal" value={debut} onChange={(e) => setDebut(e.target.value)} />
-        </label>
+        <ChampDate label="Début des travaux" className="w-full sm:w-64" valeur={debut} onChange={(v) => v && setDebut(v)} />
         <button type="button" className="bouton-principal" disabled={!debut} onClick={() => appliquerModele(c, c.nature, debut, 0)}>
           Appliquer le modèle
         </button>
@@ -293,12 +292,8 @@ function ListeTaches({ chantier: c, taches, dependances }: { chantier: Chantier;
             <label className="etiquette col-span-2 xl:col-span-1">Tâche
               <input className="champ font-normal" value={t.titre} maxLength={200} onChange={(e) => maj(t, { titre: e.target.value || " " })} />
             </label>
-            <label className="etiquette">Début
-              <input type="date" required className="champ font-normal" value={t.debut} onChange={(e) => e.target.value && maj(t, { debut: e.target.value })} />
-            </label>
-            <label className="etiquette">Fin
-              <input type="date" required className="champ font-normal" value={t.fin} min={t.debut} disabled={t.jalon} onChange={(e) => e.target.value && maj(t, { fin: e.target.value })} />
-            </label>
+            <ChampDate label="Début" court valeur={t.debut} onChange={(v) => v && maj(t, { debut: v })} />
+            <ChampDate label="Fin" court valeur={t.fin} min={t.debut} disabled={t.jalon} onChange={(v) => v && maj(t, { fin: v })} />
             <Liste
               label="Avancement"
               valeur={t.avancement}
