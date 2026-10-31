@@ -25,7 +25,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="fr" className={`${plexSans.variable} ${plexMono.variable} antialiased`}>
-      <body className="min-h-dvh font-sans">
+      {/* Des extensions (Monica, Grammarly…) ajoutent des attributs au <body> avant React :
+          on ignore ces écarts sur ce seul élément, pas sur ses enfants */}
+      <body className="min-h-dvh font-sans" suppressHydrationWarning>
         <SessionProvider>
           <Coquille>{children}</Coquille>
         </SessionProvider>
