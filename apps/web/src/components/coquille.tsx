@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Logo } from "./logo";
 import { useSession } from "./session";
 
 const LIENS = [
@@ -61,10 +62,7 @@ export function Coquille({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-dvh flex-col md:flex-row">
       <nav aria-label="Navigation principale" className="pas-impression hidden w-60 shrink-0 flex-col gap-1 bg-nav p-4 md:flex">
         <Link href="/" className="mb-6 flex items-center gap-2.5 px-2 text-lg font-bold text-white">
-          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="#7FD1BC" strokeWidth="2" aria-hidden="true">
-            <path d="M14 3 L25 25 H3 Z" />
-            <circle cx="14" cy="17" r="3" />
-          </svg>
+          <Logo />
           GeoTopo
         </Link>
         {LIENS.map((l) => (
@@ -88,7 +86,7 @@ export function Coquille({ children }: { children: React.ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col pb-20 md:pb-0">
         <header className="pas-impression flex items-center justify-between gap-3 bg-nav px-4 py-3 md:hidden">
-          <Link href="/" className="font-bold text-white">GeoTopo</Link>
+          <Link href="/" className="flex items-center gap-2 font-bold text-white"><Logo taille={22} />GeoTopo</Link>
           <EtatSync />
         </header>
         {children}

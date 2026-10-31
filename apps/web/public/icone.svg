@@ -1,5 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="96" fill="#16211d"/>
-  <path d="M256 92 L420 404 H92 Z" fill="none" stroke="#7FD1BC" stroke-width="30" stroke-linejoin="round"/>
-  <circle cx="256" cy="300" r="44" fill="none" stroke="#7FD1BC" stroke-width="30"/>
+  <!-- Symbole GeoTopo (logo créé dans Canva, redessiné en vecteur) : triangle de triangulation, réticule de visée, borne -->
+  <rect width="512" height="512" rx="96" fill="#0b181e"/>
+  <g transform="translate(256 256) scale(0.62) translate(-512 -413)">
+    <mask id="m">
+      <rect x="0" y="0" width="1024" height="1024" fill="#fff"/>
+      <rect x="430" y="560" width="165" height="80" fill="#000"/>
+      <circle cx="512" cy="430" r="30" fill="#000"/>
+    </mask>
+    <g fill="#7FD1BC">
+      <g mask="url(#m)">
+        <path fill-rule="evenodd" d="M512 108 L823 630 H201 Z M512 235 L298 575 H727 Z"/>
+        <rect x="504" y="235" width="16" height="290"/>
+        <rect x="389" y="421" width="246" height="18"/>
+        <circle cx="512" cy="430" r="48"/>
+      </g>
+      <circle cx="512" cy="430" r="17"/>
+      <path d="M468 520 H556 L581 690 H443 Z"/>
+      <rect x="408" y="688" width="208" height="30"/>
+    </g>
+  </g>
 </svg>
