@@ -1,26 +1,110 @@
 @import "tailwindcss";
 
+/* Thème GeoTopo : toutes les couleurs passent par ces jetons, clair et sombre */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --fond: #f4f5f2;
+  --surface: #ffffff;
+  --surface-2: #f8faf8;
+  --encre: #16211d;
+  --encre-2: #4b5a53;
+  --bord: #dce2de;
+  --bord-fort: #c5cec9;
+  --accent: #0b5e4f;
+  --accent-encre: #ffffff;
+  --nav: #16211d;
+  --nav-encre: #c9d3cd;
+  --nav-actif: #24332d;
+  --ok-fond: #ddf0e9;
+  --ok: #0b4a3e;
+  --alerte-fond: #fbebd7;
+  --alerte: #6e3a08;
+  --erreur-fond: #f7deda;
+  --erreur: #7e1d14;
+  --info-fond: #e3e8f3;
+  --info: #2d4170;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --fond: #0f1513;
+    --surface: #17201c;
+    --surface-2: #1c2722;
+    --encre: #e6ece8;
+    --encre-2: #a6b4ad;
+    --bord: #2c3a34;
+    --bord-fort: #3d4d46;
+    --accent: #3fae94;
+    --accent-encre: #08130f;
+    --nav: #0a0f0d;
+    --nav-encre: #a6b4ad;
+    --nav-actif: #1f2b26;
+    --ok-fond: #143a30;
+    --ok: #9fe0cb;
+    --alerte-fond: #3d2a10;
+    --alerte: #f7c98b;
+    --erreur-fond: #43201b;
+    --erreur: #f4b3a9;
+    --info-fond: #1e2740;
+    --info: #b6c5ec;
   }
 }
 
+@theme inline {
+  --color-fond: var(--fond);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-encre: var(--encre);
+  --color-encre-2: var(--encre-2);
+  --color-bord: var(--bord);
+  --color-bord-fort: var(--bord-fort);
+  --color-accent: var(--accent);
+  --color-accent-encre: var(--accent-encre);
+  --color-nav: var(--nav);
+  --color-nav-encre: var(--nav-encre);
+  --color-nav-actif: var(--nav-actif);
+  --color-ok-fond: var(--ok-fond);
+  --color-ok: var(--ok);
+  --color-alerte-fond: var(--alerte-fond);
+  --color-alerte: var(--alerte);
+  --color-erreur-fond: var(--erreur-fond);
+  --color-erreur: var(--erreur);
+  --color-info-fond: var(--info-fond);
+  --color-info: var(--info);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--fond);
+  color: var(--encre);
+}
+
+/* Classes communes (en @utility pour pouvoir les composer avec @apply) */
+@utility champ {
+  @apply min-h-11 w-full rounded-md border border-bord-fort bg-surface px-3 text-[15px] text-encre;
+}
+@utility etiquette {
+  @apply flex flex-col gap-1.5 text-sm font-medium;
+}
+@utility carte {
+  @apply rounded-lg border border-bord bg-surface;
+}
+@utility bouton {
+  @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md px-4 font-semibold disabled:cursor-not-allowed disabled:opacity-50;
+}
+@utility bouton-principal {
+  @apply bouton bg-accent text-accent-encre;
+}
+@utility bouton-secondaire {
+  @apply bouton border border-bord-fort bg-surface text-encre;
+}
+
+@media print {
+  .pas-impression {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+    color: #000;
+  }
 }
