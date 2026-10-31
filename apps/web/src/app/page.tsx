@@ -10,6 +10,7 @@ import { db, enregistrerChantier, nouveauChantier } from "@/lib/db";
 import { CLASSES, formatCm, METHODES, NATURES, REFERENTIELS, type Nature, type Referentiel } from "@geotopo/metier";
 import { resultatChantier, STATUTS, statutChantier, type Statut } from "@/lib/statut";
 import { suiviChantier, type Suivi } from "@/lib/suivi";
+import { Liste, optionsDe } from "@/components/liste";
 
 export default function TableauDeBord() {
   const { orgId, pret } = useSession();
@@ -70,29 +71,31 @@ export default function TableauDeBord() {
         <Indicateur titre="Non conformes" valeur={compte("non_conforme")} classe="text-erreur" />
       </section>
 
-      <section aria-label="Filtres" className="flex flex-wrap items-end gap-3">
-        <label className="etiquette font-normal text-encre-2">
-          Nature des travaux
-          <select className="champ" value={filtreNature} onChange={(e) => setFiltreNature(e.target.value as Nature | "toutes")}>
-            <option value="toutes">Toutes</option>
-            {Object.entries(NATURES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
-        </label>
-        <label className="etiquette font-normal text-encre-2">
-          Référentiel
-          <select className="champ" value={filtreRef} onChange={(e) => setFiltreRef(e.target.value as Referentiel | "tous")}>
-            <option value="tous">Tous</option>
-            {Object.entries(REFERENTIELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
-        </label>
-        <div role="group" aria-label="Statut" className="flex flex-wrap gap-2">
+      <section aria-label="Filtres" className="grid grid-cols-2 items-end gap-3 sm:flex sm:flex-wrap">
+        <Liste
+          label="Nature des travaux"
+          classeLabel="font-normal text-encre-2"
+          className="sm:w-64"
+          valeur={filtreNature}
+          options={[{ valeur: "toutes" as const, label: "Toutes" }, ...optionsDe(NATURES)]}
+          onChange={setFiltreNature}
+        />
+        <Liste
+          label="Référentiel"
+          classeLabel="font-normal text-encre-2"
+          className="sm:w-56"
+          valeur={filtreRef}
+          options={[{ valeur: "tous" as const, label: "Tous" }, ...optionsDe(REFERENTIELS)]}
+          onChange={setFiltreRef}
+        />
+        <div role="group" aria-label="Statut" className="col-span-2 -mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
           {(["tous", "conforme", "a_valider", "non_conforme", "en_cours"] as const).map((s) => (
             <button
               key={s}
               type="button"
               aria-pressed={filtreStatut === s}
               onClick={() => setFiltreStatut(s)}
-              className={`min-h-11 rounded-full border px-4 text-sm ${filtreStatut === s ? "border-accent bg-accent text-accent-encre" : "border-bord-fort bg-surface"}`}
+              className={`min-h-11 shrink-0 rounded-full border px-4 text-sm whitespace-nowrap ${filtreStatut === s ? "border-accent bg-accent text-accent-encre" : "border-bord-fort bg-surface"}`}
             >
               {s === "tous" ? "Tous" : STATUTS[s].label}
             </button>
@@ -107,8 +110,8 @@ export default function TableauDeBord() {
         </div>
       ) : (
         <>
-          {/* Tableau sur grand écran */}
-          <section aria-label="Liste des chantiers" className="carte hidden overflow-x-auto md:block">
+          {/* Tableau sur très grand écran (1280 px et plus), cartes en dessous */}
+          <section aria-label="Liste des chantiers" className="carte hidden overflow-x-auto xl:block">
             <table className="w-full min-w-[960px] text-sm">
               <thead>
                 <tr className="bg-surface-2 text-left text-encre-2">
@@ -139,7 +142,7 @@ export default function TableauDeBord() {
           </section>
 
           {/* Cartes sur téléphone */}
-          <ul aria-label="Liste des chantiers" className="flex flex-col gap-3 md:hidden">
+          <ul aria-label="Liste des chantiers" className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:hidden">
             {visibles.map(({ c, r, statut, suivi }) => (
               <li key={c.id}>
                 <Link href={`/chantier/?id=${c.id}`} className="carte flex flex-col gap-2 p-4">
@@ -152,10 +155,10 @@ export default function TableauDeBord() {
                     {CLASSES[c.classe].label} · EMQ {r.emq == null ? "—" : `${formatCm(r.emq)} cm`}
                   </span>
                   {suivi.avancement != null && (
-                    <span className="text-sm">
-                      Avancement {Math.round(suivi.avancement)} %
-                      {suivi.retard > 0 && <span className="text-erreur"> · {suivi.retard} j de retard</span>}
-                      {suivi.atteinte != null && <span className="text-encre-2"> · indicateurs {Math.round(suivi.atteinte)} %</span>}
+                    <span className="flex flex-wrap gap-x-2 text-sm">
+                      <span className="whitespace-nowrap">Avancement {Math.round(suivi.avancement)} %</span>
+                      {suivi.retard > 0 && <span className="whitespace-nowrap text-erreur">· {suivi.retard} j de retard</span>}
+                      {suivi.atteinte != null && <span className="whitespace-nowrap text-encre-2">· indicateurs {Math.round(suivi.atteinte)} %</span>}
                     </span>
                   )}
                 </Link>

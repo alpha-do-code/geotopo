@@ -1,11 +1,12 @@
 "use client";
 
 import { atteinte, calculerAuto, formatCm, INDICATEURS_AUTO, jourIso, lireNombre, niveauAtteinte, type CleAuto, type NiveauAtteinte } from "@geotopo/metier";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 import { enregistrer, type Chantier, type Point } from "@/lib/db";
 import { resultatChantier } from "@/lib/statut";
 import { nouvelleLigne, useGestion, type Indicateur, type Objectif } from "./donnees";
+import { Liste } from "@/components/liste";
 
 const NIVEAUX: Record<NiveauAtteinte, { label: string; classe: string; barre: string }> = {
   atteint: { label: "Atteint", classe: "bg-ok-fond text-ok", barre: "bg-ok" },
@@ -135,13 +136,13 @@ function BlocObjectif({
 
   return (
     <section className="carte flex flex-col gap-4 p-5 md:p-6">
-      <div className="flex flex-wrap items-start gap-3">
-        <input
-          aria-label="Objectif"
-          className="min-h-11 min-w-0 flex-1 rounded-md border border-transparent bg-transparent text-lg font-semibold hover:border-bord focus:border-bord-fort"
-          value={o.libelle}
-          maxLength={300}
-          onChange={(e) => enregistrer("objectifs", { ...o, libelle: e.target.value || " " })}
+      <div className="flex items-start gap-2">
+        <TexteAjuste
+          ariaLabel="Objectif"
+          className="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-1 py-1.5 text-lg leading-snug font-semibold hover:border-bord focus:border-bord-fort"
+          valeur={o.libelle}
+          max={300}
+          onChange={(v) => enregistrer("objectifs", { ...o, libelle: v || " " })}
         />
         <button type="button" className="bouton text-sm text-erreur" onClick={() => confirm(`Supprimer l'objectif « ${o.libelle} » ?`) && enregistrer("objectifs", { ...o, supprime: true })}>
           Supprimer
@@ -157,12 +158,13 @@ function BlocObjectif({
         <button type="button" className="bouton-secondaire" onClick={ajouterManuel}>Indicateur saisi à la main</button>
         {disponibles.length > 0 && (
           <>
-            <label className="etiquette">Indicateur automatique
-              <select className="champ font-normal" value={choixAuto} onChange={(e) => setChoixAuto(e.target.value)}>
-                <option value="">Choisir…</option>
-                {disponibles.map((k) => <option key={k} value={k}>{INDICATEURS_AUTO[k].libelle}</option>)}
-              </select>
-            </label>
+            <Liste
+              label="Indicateur automatique"
+              className="w-full sm:w-80"
+              valeur={choixAuto}
+              options={disponibles.map((k) => ({ valeur: k as string, label: INDICATEURS_AUTO[k].libelle, detail: INDICATEURS_AUTO[k].source }))}
+              onChange={setChoixAuto}
+            />
             <button type="button" className="bouton-secondaire" disabled={!choixAuto} onClick={async () => { await ajouterAuto(choixAuto as CleAuto); setChoixAuto(""); }}>
               Ajouter
             </button>
@@ -203,12 +205,12 @@ function LigneIndicateur({ indicateur: i, realise }: { indicateur: Indicateur; r
         {auto ? (
           <div className="etiquette">Sens<span className="flex min-h-11 items-center font-normal">{i.sens === "hausse" ? "Plus haut = mieux" : "Plus bas = mieux"}</span></div>
         ) : (
-          <label className="etiquette">Sens
-            <select className="champ font-normal" value={i.sens} onChange={(e) => maj({ sens: e.target.value as Indicateur["sens"] })}>
-              <option value="hausse">Plus haut = mieux</option>
-              <option value="baisse">Plus bas = mieux</option>
-            </select>
-          </label>
+          <Liste
+            label="Sens"
+            valeur={i.sens}
+            options={[{ valeur: "hausse" as const, label: "Plus haut = mieux" }, { valeur: "baisse" as const, label: "Plus bas = mieux" }]}
+            onChange={(sens) => maj({ sens })}
+          />
         )}
         <label className="etiquette col-span-2 sm:col-span-4 lg:col-span-1">Source de vérification
           <input className="champ font-normal" maxLength={500} value={i.source_verification} onChange={(e) => maj({ source_verification: e.target.value })} placeholder="PV, rapport, registre…" />
@@ -221,6 +223,28 @@ function LigneIndicateur({ indicateur: i, realise }: { indicateur: Indicateur; r
       )}
       {pct != null && <Jauge pct={pct} classe={niveau!.barre} />}
     </li>
+  );
+}
+
+// Zone de texte qui grandit avec son contenu : un titre long passe à la ligne au lieu d'être coupé
+function TexteAjuste({ valeur, onChange, className, ariaLabel, max }: { valeur: string; onChange: (v: string) => void; className: string; ariaLabel: string; max: number }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const t = ref.current;
+    if (!t) return;
+    t.style.height = "auto";
+    t.style.height = `${t.scrollHeight}px`;
+  });
+  return (
+    <textarea
+      ref={ref}
+      rows={1}
+      aria-label={ariaLabel}
+      className={`resize-none overflow-hidden ${className}`}
+      value={valeur}
+      maxLength={max}
+      onChange={(e) => onChange(e.target.value.replace(/\n/g, " "))}
+    />
   );
 }
 

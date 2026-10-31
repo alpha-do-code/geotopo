@@ -120,9 +120,9 @@ function Formulaire({ chantier: c }: { chantier: Chantier }) {
         <label className="etiquette">Point
           <input className="champ min-h-12 font-mono text-[17px] font-normal" value={code} maxLength={60} onChange={(e) => setCode(e.target.value)} autoCapitalize="characters" required />
         </label>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {([[a, va, setVa], [b, vb, setVb], [z, vc, setVc]] as const).map(([axe, v, set]) => (
-            <label key={axe} className="etiquette">{axe} (m)
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {([[a, va, setVa], [b, vb, setVb], [z, vc, setVc]] as const).map(([axe, v, set], i) => (
+            <label key={axe} className={`etiquette min-w-0 ${i === 2 ? "col-span-2 sm:col-span-1" : ""}`}>{axe} (m)
               <input
                 className={`champ min-h-12 font-mono text-[17px] font-normal ${v && lireNombre(v) == null ? "border-erreur" : ""}`}
                 inputMode="decimal"

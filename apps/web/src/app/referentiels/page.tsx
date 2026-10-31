@@ -4,9 +4,9 @@ import { useState } from "react";
 import { APPAREIL_PAR_DEFAUT, APPAREILS, CLASSES, MATRICE, METHODES, SOURCES, type Methode } from "@geotopo/metier";
 
 const ONGLETS = [
-  { id: "CI", label: "Côte d'Ivoire" },
-  { id: "MA", label: "Maroc" },
-  { id: "matrice", label: "Méthodes et appareils" },
+  { id: "CI", label: "Côte d'Ivoire", court: "Côte d'Ivoire" },
+  { id: "MA", label: "Maroc", court: "Maroc" },
+  { id: "matrice", label: "Méthodes et appareils", court: "Méthodes" },
 ] as const;
 
 export default function Referentiels() {
@@ -20,7 +20,7 @@ export default function Referentiels() {
         </p>
       </header>
 
-      <div role="tablist" aria-label="Référentiel" className="flex flex-wrap gap-2 border-b border-bord">
+      <div role="tablist" aria-label="Référentiel" className="grid grid-cols-3 border-b border-bord sm:flex sm:gap-2">
         {ONGLETS.map((o) => (
           <button
             key={o.id}
@@ -28,9 +28,10 @@ export default function Referentiels() {
             role="tab"
             aria-selected={onglet === o.id}
             onClick={() => setOnglet(o.id)}
-            className={`-mb-px min-h-11 border-b-[3px] px-4 ${onglet === o.id ? "border-accent font-semibold text-accent" : "border-transparent text-encre-2"}`}
+            className={`-mb-px min-h-11 border-b-[3px] px-1 text-[15px] sm:px-4 sm:text-base ${onglet === o.id ? "border-accent font-semibold text-accent" : "border-transparent text-encre-2"}`}
           >
-            {o.label}
+            <span className="sm:hidden">{o.court}</span>
+            <span className="hidden sm:inline">{o.label}</span>
           </button>
         ))}
       </div>
@@ -46,7 +47,7 @@ export default function Referentiels() {
                 </div>
                 <dl className="mt-4 divide-y divide-bord border-t border-bord text-sm">
                   {s.lignes.map(([k, v]) => (
-                    <div key={k} className="grid gap-1 py-2.5 sm:grid-cols-[240px_1fr]">
+                    <div key={k} className="grid grid-cols-1 gap-1 py-2.5 sm:grid-cols-[240px_minmax(0,1fr)]">
                       <dt className="font-semibold">{k}</dt>
                       <dd>{v}</dd>
                     </div>

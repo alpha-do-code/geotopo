@@ -16,6 +16,7 @@ import {
   compatibilite, formatCm, lireCsv, lireNombre, type Methode, type Systeme,
 } from "@geotopo/metier";
 import { resultatChantier, statutChantier } from "@/lib/statut";
+import { Liste, optionsDe } from "@/components/liste";
 
 const options = <K extends string>(o: Record<K, string>) => (Object.entries(o) as [K, string][]).map(([valeur, label]) => ({ valeur, label }));
 
@@ -36,11 +37,12 @@ export function FicheChantier() {
   return <Fiche chantier={chantier} points={points} />;
 }
 
+// [clé, libellé, libellé court sur téléphone]
 const ONGLETS = [
-  ["controle", "Contrôle"],
-  ["planning", "Planning"],
-  ["raci", "Qui fait quoi (RACI)"],
-  ["indicateurs", "Indicateurs"],
+  ["controle", "Contrôle", "Contrôle"],
+  ["planning", "Planning", "Planning"],
+  ["raci", "Qui fait quoi (RACI)", "RACI"],
+  ["indicateurs", "Indicateurs", "Indicateurs"],
 ] as const;
 type Onglet = (typeof ONGLETS)[number][0];
 
@@ -96,18 +98,19 @@ function Fiche({ chantier: c, points }: { chantier: Chantier; points: Point[] })
         <p className="text-encre-2">{[c.lieu, REFERENTIELS[c.referentiel], c.client && `Maître d'ouvrage : ${c.client}`].filter(Boolean).join(" · ")}</p>
       </header>
 
-      <nav aria-label="Volets du chantier" className="pas-impression -mx-4 overflow-x-auto px-4">
-        <div role="tablist" className="flex min-w-max gap-1 border-b border-bord">
-          {ONGLETS.map(([cle, label]) => (
+      <nav aria-label="Volets du chantier" className="pas-impression">
+        <div role="tablist" className="grid grid-cols-4 border-b border-bord sm:flex sm:gap-1">
+          {ONGLETS.map(([cle, label, court]) => (
             <button
               key={cle}
               type="button"
               role="tab"
               aria-selected={onglet === cle}
               onClick={() => setOnglet(cle)}
-              className={`-mb-px min-h-11 border-b-2 px-4 text-sm font-medium ${onglet === cle ? "border-accent text-encre" : "border-transparent text-encre-2 hover:text-encre"}`}
+              className={`-mb-px min-h-11 border-b-2 px-1 text-[13px] font-medium sm:px-4 sm:text-sm ${onglet === cle ? "border-accent text-encre" : "border-transparent text-encre-2 hover:text-encre"}`}
             >
-              {label}
+              <span className="sm:hidden">{court}</span>
+              <span className="hidden sm:inline">{label}</span>
             </button>
           ))}
         </div>
@@ -115,30 +118,22 @@ function Fiche({ chantier: c, points }: { chantier: Chantier; points: Point[] })
 
       {onglet === "controle" && (
         <>
-        <div className="grid items-start gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
           <section aria-labelledby="h-cdc" className="carte pas-impression flex flex-col gap-5 p-5 md:p-6">
             <h2 id="h-cdc" className="text-lg font-semibold">1. Exigences du cahier des charges</h2>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label className="etiquette">Lieu
                 <input className="champ font-normal" value={c.lieu} maxLength={200} onChange={(e) => maj({ lieu: e.target.value })} />
               </label>
               <label className="etiquette">Maître d&apos;ouvrage
                 <input className="champ font-normal" value={c.client} maxLength={200} onChange={(e) => maj({ client: e.target.value })} />
               </label>
-              <label className="etiquette">Référentiel
-                <select className="champ font-normal" value={c.referentiel} onChange={(e) => maj({ referentiel: e.target.value as Chantier["referentiel"] })}>
-                  {options(REFERENTIELS).map((o) => <option key={o.valeur} value={o.valeur}>{o.label}</option>)}
-                </select>
-              </label>
-              <label className="etiquette">Nature des travaux
-                <select className="champ font-normal" value={c.nature} onChange={(e) => maj({ nature: e.target.value as Chantier["nature"] })}>
-                  {options(NATURES).map((o) => <option key={o.valeur} value={o.valeur}>{o.label}</option>)}
-                </select>
-              </label>
+              <Liste label="Référentiel" valeur={c.referentiel} options={optionsDe(REFERENTIELS)} onChange={(referentiel) => maj({ referentiel })} />
+              <Liste label="Nature des travaux" valeur={c.nature} options={optionsDe(NATURES)} onChange={(nature) => maj({ nature })} />
             </div>
 
             <Choix legende="Classe de précision exigée" options={CLASSES.map((k, i) => ({ valeur: i, label: k.label }))} valeur={c.classe} onChange={(classe) => maj({ classe })} />
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <ChampNombre
                 label="Tolérance du cahier des charges (cm)"
                 aide="Facultatif. Remplace la borne de la classe."
@@ -171,12 +166,8 @@ function Fiche({ chantier: c, points }: { chantier: Chantier; points: Point[] })
               </Encart>
             )}
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="etiquette">Appareil utilisé
-                <select className="champ font-normal" value={c.appareil} onChange={(e) => maj({ appareil: e.target.value as Chantier["appareil"] })}>
-                  {options(APPAREILS).map((o) => <option key={o.valeur} value={o.valeur}>{o.label}</option>)}
-                </select>
-              </label>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Liste label="Appareil utilisé" valeur={c.appareil} options={optionsDe(APPAREILS)} onChange={(appareil) => maj({ appareil })} />
               <label className="etiquette">Modèle et n° de série
                 <input className="champ font-normal" value={c.appareil_modele} maxLength={200} onChange={(e) => maj({ appareil_modele: e.target.value })} />
               </label>
@@ -188,17 +179,9 @@ function Fiche({ chantier: c, points }: { chantier: Chantier; points: Point[] })
 
           <section aria-labelledby="h-ctl" className="carte flex flex-col gap-5 p-5 md:p-6">
             <h2 id="h-ctl" className="text-lg font-semibold">2. Contrôle et acceptabilité</h2>
-            <div className="pas-impression grid gap-3 sm:grid-cols-2">
-              <label className="etiquette">Type de contrôle
-                <select className="champ font-normal" value={c.type_controle} onChange={(e) => maj({ type_controle: e.target.value as Chantier["type_controle"] })}>
-                  {options(TYPES_CONTROLE).map((o) => <option key={o.valeur} value={o.valeur}>{o.label}</option>)}
-                </select>
-              </label>
-              <label className="etiquette">Réalisé par
-                <select className="champ font-normal" value={c.controle_par} onChange={(e) => maj({ controle_par: e.target.value as Chantier["controle_par"] })}>
-                  {options(CONTROLE_PAR).map((o) => <option key={o.valeur} value={o.valeur}>{o.label}</option>)}
-                </select>
-              </label>
+            <div className="pas-impression grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Liste label="Type de contrôle" valeur={c.type_controle} options={optionsDe(TYPES_CONTROLE)} onChange={(type_controle) => maj({ type_controle })} />
+              <Liste label="Réalisé par" valeur={c.controle_par} options={optionsDe(CONTROLE_PAR)} onChange={(controle_par) => maj({ controle_par })} />
             </div>
             <div className="pas-impression">
               <Choix
@@ -247,10 +230,10 @@ function Fiche({ chantier: c, points }: { chantier: Chantier; points: Point[] })
               </Encart>
             )}
 
-            <div className="grid grid-cols-3 gap-3">
-              <Mesure titre={c.systeme_coord === "XYZ" ? "EMQ 3D" : "EMQ planimétrique"} valeur={r.emq} />
-              <Mesure titre="Écart maximal" valeur={r.ecartMax} />
-              <Mesure titre={`Tolérance (${formatCm(c.coef_tolerance)} × borne)`} valeur={r.tolerance} />
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              <Mesure titre={c.systeme_coord === "XYZ" ? "EMQ 3D" : "EMQ plani"} valeur={r.emq} />
+              <Mesure titre="Écart max" valeur={r.ecartMax} />
+              <Mesure titre={`Tolérance ${formatCm(c.coef_tolerance)} × borne`} valeur={r.tolerance} />
             </div>
 
             {r.verdict === "conforme" && <Encart ton="ok" titre="Travaux acceptables">EMQ et écarts dans la borne de {r.borne != null ? `${formatCm(r.borne)} cm` : "—"}.</Encart>}
@@ -275,7 +258,7 @@ function Fiche({ chantier: c, points }: { chantier: Chantier; points: Point[] })
                   : "Seuls le chef de mission et le contrôleur peuvent valider."}
             </p>
           </div>
-          <div className="pas-impression flex flex-wrap gap-3">
+          <div className="pas-impression flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <button type="button" className="bouton-secondaire" onClick={exporterCsv} disabled={!r.ecarts.length}>Exporter les écarts (CSV)</button>
             <button type="button" className="bouton-secondaire" onClick={() => window.print()}>Imprimer le PV</button>
             {peutValider && c.verdict && <button type="button" className="bouton-secondaire" onClick={() => valider(null)}>Annuler la validation</button>}
@@ -349,7 +332,7 @@ function GestionPoints({ chantier: c, points }: { chantier: Chantier; points: Po
         valeur={phase}
         onChange={setPhase}
       />
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="flex flex-col gap-2">
           <label className="etiquette">
             Importer des points ({a}, {b}, {z} en mètres)
@@ -361,7 +344,7 @@ function GestionPoints({ chantier: c, points }: { chantier: Chantier; points: Po
               className="champ py-2 font-mono font-normal"
             />
           </label>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <button type="button" className="bouton-secondaire" disabled={!texte.trim()} onClick={() => importer(texte)}>Importer le texte</button>
             <label className="bouton-secondaire">
               Choisir un fichier CSV
@@ -443,9 +426,9 @@ function ChampNombre({ label, aide, valeur, onChange }: { label: string; aide: s
 
 function Mesure({ titre, valeur }: { titre: string; valeur: number | null }) {
   return (
-    <div className="rounded-md border border-bord p-3">
-      <div className="text-[13px] text-encre-2">{titre}</div>
-      <div className="font-mono text-xl font-semibold">{valeur == null ? "—" : `${formatCm(valeur)} cm`}</div>
+    <div className="flex flex-col justify-between gap-1 rounded-md border border-bord p-2.5 sm:p-3">
+      <div className="text-[12px] leading-tight text-encre-2 sm:text-[13px]">{titre}</div>
+      <div className="font-mono text-lg font-semibold whitespace-nowrap sm:text-xl">{valeur == null ? "—" : `${formatCm(valeur)} cm`}</div>
     </div>
   );
 }

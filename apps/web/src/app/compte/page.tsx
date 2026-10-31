@@ -7,6 +7,7 @@ import { useSession } from "@/components/session";
 import { api, ErreurApi, type Membre } from "@/lib/api";
 import { db, ORG_LOCALE } from "@/lib/db";
 import { ROLES, type Role } from "@geotopo/metier";
+import { Liste, optionsDe } from "@/components/liste";
 
 const messageErreur = (e: unknown) => (e instanceof ErreurApi ? e.message : "L'opération a échoué. Réessaie.");
 
@@ -179,7 +180,7 @@ function Equipe() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="text-sm text-encre-2">Connecté</div>
-            <div className="font-semibold">{user?.email}</div>
+            <div className="font-semibold break-all">{user?.email}</div>
           </div>
           <button type="button" onClick={seDeconnecter} className="bouton-secondaire">Se déconnecter</button>
         </div>
@@ -187,11 +188,7 @@ function Equipe() {
       </section>
 
       {orgs.length > 1 && (
-        <label className="etiquette">Organisation active
-          <select className="champ font-normal" value={org?.id ?? ""} onChange={(e) => choisirOrg(e.target.value)}>
-            {orgs.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}
-          </select>
-        </label>
+        <Liste label="Organisation active" valeur={org?.id ?? ""} options={orgs.map((o) => ({ valeur: o.id, label: o.nom, detail: ROLES[o.role] }))} onChange={choisirOrg} />
       )}
 
       {org ? (
@@ -215,9 +212,13 @@ function Equipe() {
                     <span className="block text-[13px] text-encre-2">{m.email}</span>
                   </span>
                   {org.role === "chef" && m.user_id !== user?.id ? (
-                    <select aria-label={`Rôle de ${m.nom_affiche || "ce membre"}`} className="champ w-auto font-normal" value={m.role} onChange={(e) => changerRole(m.user_id, e.target.value as Role)}>
-                      {Object.entries(ROLES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                    </select>
+                    <Liste
+                      ariaLabel={`Rôle de ${m.nom_affiche || "ce membre"}`}
+                      className="w-full sm:w-52"
+                      valeur={m.role}
+                      options={optionsDe(ROLES)}
+                      onChange={(role) => changerRole(m.user_id, role)}
+                    />
                   ) : (
                     <span className="text-encre-2">{ROLES[m.role]}</span>
                   )}

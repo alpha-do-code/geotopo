@@ -20,7 +20,8 @@ function Icone({ d }: { d: string }) {
   );
 }
 
-export function EtatSync() {
+// compact : pastille seule (rail de navigation sur tablette), le texte passe en info-bulle
+export function EtatSync({ compact = false }: { compact?: boolean }) {
   const { user, org, enLigne, enAttente, sync, synchroniserMaintenant } = useSession();
   let texte: string;
   let ton: string;
@@ -40,15 +41,17 @@ export function EtatSync() {
     texte = enAttente ? `${enAttente} à envoyer` : "À jour";
     ton = "bg-ok-fond text-ok";
   }
+  const detail = sync.erreur ?? (sync.derniere ? `Dernière synchronisation : ${new Date(sync.derniere).toLocaleTimeString("fr-FR")}` : undefined);
   return (
     <button
       type="button"
       onClick={synchroniserMaintenant}
-      title={sync.erreur ?? (sync.derniere ? `Dernière synchronisation : ${new Date(sync.derniere).toLocaleTimeString("fr-FR")}` : undefined)}
-      className={`inline-flex min-h-8 items-center gap-2 rounded-full px-3 text-xs font-semibold ${ton}`}
+      title={compact ? [texte, detail].filter(Boolean).join(" · ") : detail}
+      aria-label={compact ? texte : undefined}
+      className={`inline-flex min-h-8 items-center gap-2 rounded-full text-xs font-semibold ${compact ? "size-9 justify-center" : "px-3"} ${ton}`}
     >
       <span className="size-2 rounded-full bg-current" aria-hidden="true" />
-      {texte}
+      {!compact && texte}
     </button>
   );
 }
@@ -60,26 +63,29 @@ export function Coquille({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-dvh flex-col md:flex-row">
-      <nav aria-label="Navigation principale" className="pas-impression hidden w-60 shrink-0 flex-col gap-1 bg-nav p-4 md:flex">
-        <Link href="/" className="mb-6 flex items-center gap-2.5 px-2 text-lg font-bold text-white">
+      {/* Tablette : rail d'icônes ; grand écran : navigation complète */}
+      <nav aria-label="Navigation principale" className="pas-impression sticky top-0 hidden h-dvh w-20 shrink-0 flex-col items-center gap-1 bg-nav px-2 py-4 md:flex lg:w-60 lg:items-stretch lg:p-4">
+        <Link href="/" aria-label="GeoTopo, accueil" className="mb-6 flex items-center gap-2.5 text-lg font-bold text-white lg:px-2">
           <Logo taille={32} />
-          GeoTopo
+          <span className="hidden lg:inline">GeoTopo</span>
         </Link>
         {LIENS.map((l) => (
           <Link
             key={l.href}
             href={l.href}
             aria-current={actif(l.href) ? "page" : undefined}
-            className={`flex min-h-11 items-center gap-3 rounded-md px-3 ${actif(l.href) ? "bg-nav-actif font-medium text-white" : "text-nav-encre hover:text-white"}`}
+            title={l.label}
+            className={`flex min-h-11 w-full items-center justify-center gap-3 rounded-md lg:justify-start lg:px-3 ${actif(l.href) ? "bg-nav-actif font-medium text-white" : "text-nav-encre hover:text-white"}`}
           >
             <Icone d={l.icone} />
-            {l.label}
+            <span className="sr-only lg:not-sr-only">{l.label}</span>
           </Link>
         ))}
-        <div className="mt-auto border-t border-white/10 px-3 pt-3 text-sm text-nav-encre">
-          <div className="font-semibold text-white">{org?.nom ?? "Mode local"}</div>
-          <div className="mt-2">
-            <EtatSync />
+        <div className="mt-auto w-full border-t border-white/10 pt-3 text-sm text-nav-encre lg:px-3">
+          <div className="hidden truncate font-semibold text-white lg:block">{org?.nom ?? "Mode local"}</div>
+          <div className="flex justify-center lg:mt-2 lg:block">
+            <span className="lg:hidden"><EtatSync compact /></span>
+            <span className="hidden lg:inline"><EtatSync /></span>
           </div>
         </div>
       </nav>

@@ -42,9 +42,9 @@ export function MatriceRaci({ chantier: c }: { chantier: Chantier }) {
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="bg-surface-2">
-              <th scope="col" className="sticky left-0 z-10 min-w-44 bg-surface-2 px-4 py-3 text-left font-semibold text-encre-2">Tâche</th>
+              <th scope="col" className="sticky left-0 z-10 w-32 min-w-32 bg-surface-2 px-3 py-3 text-left font-semibold text-encre-2 sm:w-auto sm:min-w-44 sm:px-4">Tâche</th>
               {acteurs.map((a) => (
-                <th key={a.id} scope="col" className="min-w-28 px-2 py-3 text-center align-bottom font-semibold">
+                <th key={a.id} scope="col" className="min-w-20 px-1.5 py-3 text-center align-bottom text-[13px] font-semibold sm:min-w-28 sm:px-2 sm:text-sm">
                   <span className="block">{a.nom}</span>
                   <span className="block text-[12px] font-normal text-encre-2">{a.user_id ? "Membre" : a.organisme || "Externe"}</span>
                 </th>
@@ -56,7 +56,7 @@ export function MatriceRaci({ chantier: c }: { chantier: Chantier }) {
               const enAlerte = alertes.some((k) => k.tache_id === t.id);
               return (
                 <tr key={t.id} className="border-t border-bord">
-                  <th scope="row" className={`sticky left-0 z-10 bg-surface px-4 py-2 text-left font-normal ${enAlerte ? "text-alerte" : ""}`}>
+                  <th scope="row" className={`sticky left-0 z-10 bg-surface px-3 py-2 text-left text-[13px] leading-snug font-normal sm:px-4 sm:text-sm ${enAlerte ? "text-alerte" : ""}`}>
                     {t.titre}
                   </th>
                   {acteurs.map((a) => {
@@ -135,7 +135,7 @@ function Acteurs({ acteurs, orgId }: { acteurs: Acteur[]; orgId: string }) {
           ))}
         </ul>
       )}
-      <form onSubmit={ajouter} className="grid gap-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
+      <form onSubmit={ajouter} className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(3,minmax(0,1fr))_auto] sm:items-end">
         <label className="etiquette">Nom
           <input className="champ font-normal" required maxLength={120} value={nom} onChange={(e) => setNom(e.target.value)} />
         </label>

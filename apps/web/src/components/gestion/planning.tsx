@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Encart } from "@/components/choix";
 import { enregistrer, type Chantier } from "@/lib/db";
 import { appliquerModele, definirDependance, nouvelleLigne, useGestion, type Dependance, type Tache } from "./donnees";
+import { Liste } from "@/components/liste";
 
 const J = 28; // largeur d'un jour (px)
 const H = 40; // hauteur d'une ligne
@@ -151,12 +152,12 @@ function Gantt({ taches, dependances, aujourdhui, conflits }: { taches: Tache[];
 
   return (
     <section aria-label="Diagramme de Gantt" className="carte flex overflow-hidden">
-      <div className="w-36 shrink-0 border-r border-bord md:w-64">
+      <div className="w-28 shrink-0 border-r border-bord sm:w-44 lg:w-64">
         <div style={{ height: ENTETE }} className="flex items-end border-b border-bord px-3 pb-1.5 text-[13px] font-semibold text-encre-2">Tâche</div>
         {taches.map((t) => (
           <div key={t.id} style={{ height: H }} className="flex items-center gap-2 border-b border-bord px-3 text-sm last:border-b-0">
             <span className="truncate" title={t.titre}>{t.titre}</span>
-            <span className="ml-auto shrink-0 font-mono text-[12px] text-encre-2">{t.avancement} %</span>
+            <span className="ml-auto hidden shrink-0 font-mono text-[12px] text-encre-2 sm:inline">{t.avancement} %</span>
           </div>
         ))}
       </div>
@@ -288,8 +289,8 @@ function ListeTaches({ chantier: c, taches, dependances }: { chantier: Chantier;
       <p className="text-[13px] text-encre-2">Glisse une barre pour la décaler, son bord droit pour changer sa fin. « Après » lie une tâche à la précédente.</p>
       <ul className="flex flex-col divide-y divide-bord">
         {taches.map((t) => (
-          <li key={t.id} className="grid gap-3 py-3 md:grid-cols-[minmax(0,2fr)_9.5rem_9.5rem_7rem_minmax(0,1.3fr)_auto] md:items-end">
-            <label className="etiquette">Tâche
+          <li key={t.id} className="grid grid-cols-2 gap-3 py-4 xl:grid-cols-[minmax(0,2fr)_9.5rem_9.5rem_7rem_minmax(0,1.3fr)_auto] xl:items-end xl:py-3">
+            <label className="etiquette col-span-2 xl:col-span-1">Tâche
               <input className="champ font-normal" value={t.titre} maxLength={200} onChange={(e) => maj(t, { titre: e.target.value || " " })} />
             </label>
             <label className="etiquette">Début
@@ -298,18 +299,19 @@ function ListeTaches({ chantier: c, taches, dependances }: { chantier: Chantier;
             <label className="etiquette">Fin
               <input type="date" required className="champ font-normal" value={t.fin} min={t.debut} disabled={t.jalon} onChange={(e) => e.target.value && maj(t, { fin: e.target.value })} />
             </label>
-            <label className="etiquette">Avancement
-              <select className="champ font-normal" value={t.avancement} onChange={(e) => maj(t, { avancement: Number(e.target.value) })}>
-                {Array.from({ length: 11 }, (_, i) => i * 10).map((v) => <option key={v} value={v}>{v} %</option>)}
-              </select>
-            </label>
-            <label className="etiquette">Après
-              <select className="champ font-normal" value={apres(t)} onChange={(e) => definirDependance(c.org_id, t.id, e.target.value || null, dependances)}>
-                <option value="">Aucune</option>
-                {taches.filter((k) => k.id !== t.id).map((k) => <option key={k.id} value={k.id}>{k.titre}</option>)}
-              </select>
-            </label>
-            <div className="flex items-center gap-3">
+            <Liste
+              label="Avancement"
+              valeur={t.avancement}
+              options={Array.from({ length: 11 }, (_, i) => ({ valeur: i * 10, label: `${i * 10} %` }))}
+              onChange={(avancement) => maj(t, { avancement })}
+            />
+            <Liste
+              label="Après"
+              valeur={apres(t)}
+              options={[{ valeur: "", label: "Aucune" }, ...taches.filter((k) => k.id !== t.id).map((k) => ({ valeur: k.id, label: k.titre }))]}
+              onChange={(v) => definirDependance(c.org_id, t.id, v || null, dependances)}
+            />
+            <div className="col-span-2 flex items-center justify-between gap-3 xl:col-span-1 xl:justify-start">
               <label className="flex min-h-11 items-center gap-2 text-sm">
                 <input type="checkbox" checked={t.jalon} onChange={(e) => maj(t, { jalon: e.target.checked })} className="size-4" />
                 Jalon
