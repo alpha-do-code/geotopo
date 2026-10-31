@@ -21,7 +21,8 @@ const options = <K extends string>(o: Record<K, string>) => (Object.entries(o) a
 
 export function FicheChantier() {
   const id = useSearchParams().get("id") ?? "";
-  const chantier = useLiveQuery(() => db.chantiers.get(id), [id]);
+  // null : introuvable sur cet appareil ; undefined : lecture en cours
+  const chantier = useLiveQuery(() => db.chantiers.get(id).then((c) => c ?? null), [id]);
   const points = useLiveQuery(() => db.points.where("chantier_id").equals(id).filter((p) => !p.supprime).toArray(), [id]);
 
   if (chantier === undefined || points === undefined) return <p className="p-8 text-encre-2">Chargement…</p>;

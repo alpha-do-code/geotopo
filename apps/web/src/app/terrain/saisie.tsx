@@ -13,7 +13,8 @@ export function SaisieTerrain() {
   const id = useSearchParams().get("id");
   const { orgId } = useSession();
   const chantiers = useLiveQuery(() => db.chantiers.where("org_id").equals(orgId).filter((c) => !c.supprime).toArray(), [orgId]);
-  const chantier = useLiveQuery(() => (id ? db.chantiers.get(id) : undefined), [id]);
+  // null : introuvable sur cet appareil ; undefined : lecture en cours
+  const chantier = useLiveQuery(() => (id ? db.chantiers.get(id).then((c) => c ?? null) : null), [id]);
 
   if (!id) {
     return (

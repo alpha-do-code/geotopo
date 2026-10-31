@@ -1,6 +1,6 @@
 // Service worker de GeoTopo : l'application doit s'ouvrir sans réseau sur le terrain.
 // Changer VERSION à chaque évolution de ce fichier.
-const VERSION = "geotopo-v1";
+const VERSION = "geotopo-v2";
 const PAGES = ["/", "/terrain/", "/chantier/", "/referentiels/", "/compte/"];
 const FIXES = ["/manifest.webmanifest", "/icone.svg", "/icone-192.png", "/icone-512.png"];
 
@@ -37,8 +37,8 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   const url = new URL(req.url);
-  // Supabase et tout autre domaine : jamais mis en cache ici
-  if (req.method !== "GET" || url.origin !== self.location.origin) return;
+  // L'API (même origine en production) et tout autre domaine : jamais mis en cache ici
+  if (req.method !== "GET" || url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
 
   // Fichiers versionnés par Next.js : le cache d'abord
   if (url.pathname.startsWith("/_next/static/")) {
