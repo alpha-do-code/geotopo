@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
   output: "export",
   trailingSlash: true,
   images: { unoptimized: true },
+  // Pas de bouton Next.js en développement ; les erreurs de compilation s'affichent quand même
+  devIndicators: false,
   turbopack: {
     rules: {
       "*.css": {
