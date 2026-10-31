@@ -4,20 +4,11 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useState } from "react";
 import { Encart } from "@/components/choix";
 import { useSession } from "@/components/session";
+import { api, ErreurApi, type Membre } from "@/lib/api";
 import { db, ORG_LOCALE } from "@/lib/db";
 import { ROLES, type Role } from "@geotopo/metier";
-import { supabase } from "@/lib/supabase";
 
-// Messages d'erreur courts, sans détail technique pour l'utilisateur
-function messageErreur(e: { message?: string } | null): string {
-  const m = e?.message ?? "";
-  if (/invalid login/i.test(m)) return "E-mail ou mot de passe incorrect.";
-  if (/email not confirmed/i.test(m)) return "Confirme ton adresse avec le lien reçu par e-mail.";
-  if (/code d'invitation/i.test(m)) return "Code d'invitation inconnu.";
-  if (/rate limit|too many/i.test(m)) return "Trop de tentatives. Réessaie dans quelques minutes.";
-  if (/fetch|network/i.test(m)) return "Pas de connexion. Réessaie une fois en ligne.";
-  return "L'opération a échoué. Réessaie.";
-}
+const messageErreur = (e: unknown) => (e instanceof ErreurApi ? e.message : "L'opération a échoué. Réessaie.");
 
 export default function Compte() {
   const s = useSession();
@@ -25,71 +16,110 @@ export default function Compte() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 md:py-8">
       <h1 className="text-2xl font-bold md:text-3xl">Compte et équipe</h1>
-      {!s.configure ? (
-        <Encart ton="info" titre="Mode local">
-          La synchronisation n&apos;est pas configurée sur ce déploiement. Les données restent sur cet appareil.
-        </Encart>
-      ) : !s.user ? (
-        <Connexion />
-      ) : (
-        <Equipe />
-      )}
+      {!s.user ? <Connexion /> : <Equipe />}
     </main>
   );
 }
 
+type Mode = "connexion" | "inscription" | "oubli" | "reinitialiser";
+
 function Connexion() {
-  const [mode, setMode] = useState<"connexion" | "inscription">("connexion");
+  const { connexion } = useSession();
+  // Lien reçu par e-mail : /compte/?reinitialiser=… (ce composant n'existe que côté navigateur)
+  const lienReinit = () => new URLSearchParams(window.location.search).get("reinitialiser");
+  const [mode, setMode] = useState<Mode>(() => (lienReinit() ? "reinitialiser" : "connexion"));
+  const [jeton] = useState(() => lienReinit() ?? "");
   const [email, setEmail] = useState("");
   const [mdp, setMdp] = useState("");
+  const [nom, setNom] = useState("");
   const [etat, setEtat] = useState<{ ton: "erreur" | "ok"; texte: string } | null>(null);
   const [envoi, setEnvoi] = useState(false);
 
+  // Lien de confirmation : /compte/?confirmer=… ; le jeton est retiré de l'adresse dès la lecture
+  useEffect(() => {
+    const confirmer = new URLSearchParams(window.location.search).get("confirmer");
+    if (window.location.search) window.history.replaceState(null, "", window.location.pathname);
+    if (!confirmer) return;
+    api.confirmer(confirmer).then(
+      (r) => setEtat({ ton: "ok", texte: r.message }),
+      (e) => setEtat({ ton: "erreur", texte: messageErreur(e) }),
+    );
+  }, []);
+
   async function soumettre(e: React.FormEvent) {
     e.preventDefault();
-    if (!supabase) return;
     setEnvoi(true);
     setEtat(null);
-    if (mode === "connexion") {
-      const { error } = await supabase.auth.signInWithPassword({ email, password: mdp });
-      if (error) setEtat({ ton: "erreur", texte: messageErreur(error) });
-      else window.location.reload();
-    } else {
-      const { error } = await supabase.auth.signUp({ email, password: mdp, options: { emailRedirectTo: `${window.location.origin}/compte/` } });
-      if (error) setEtat({ ton: "erreur", texte: /password/i.test(error.message) ? "Mot de passe trop faible (10 caractères minimum)." : messageErreur(error) });
-      else setEtat({ ton: "ok", texte: "Compte créé. Ouvre le lien reçu par e-mail pour confirmer ton adresse, puis connecte-toi." });
+    try {
+      if (mode === "connexion") await connexion(email, mdp);
+      else if (mode === "inscription") setEtat({ ton: "ok", texte: (await api.inscription(email, mdp, nom)).message });
+      else if (mode === "oubli") setEtat({ ton: "ok", texte: (await api.oubli(email)).message });
+      else {
+        setEtat({ ton: "ok", texte: (await api.reinitialiser(jeton, mdp)).message });
+        setMode("connexion");
+        setMdp("");
+      }
+    } catch (err) {
+      setEtat({ ton: "erreur", texte: messageErreur(err) });
     }
     setEnvoi(false);
   }
 
+  const changer = (m: Mode) => {
+    setMode(m);
+    setEtat(null);
+  };
+  const titres: Record<Mode, [string, string]> = {
+    connexion: ["Connexion", "Se connecter"],
+    inscription: ["Créer un compte", "Créer le compte"],
+    oubli: ["Mot de passe oublié", "Recevoir un lien"],
+    reinitialiser: ["Nouveau mot de passe", "Enregistrer"],
+  };
+
   return (
     <form onSubmit={soumettre} className="carte flex flex-col gap-4 p-5 md:p-6">
-      <h2 className="text-lg font-semibold">{mode === "connexion" ? "Connexion" : "Créer un compte"}</h2>
-      <p className="text-sm text-encre-2">Le compte sert à partager les chantiers avec ton équipe. Une fois connecté, l&apos;application marche aussi hors ligne.</p>
-      <label className="etiquette">E-mail
-        <input type="email" autoComplete="email" required className="champ font-normal" value={email} onChange={(e) => setEmail(e.target.value)} />
-      </label>
-      <label className="etiquette">Mot de passe
-        <input
-          type="password"
-          autoComplete={mode === "connexion" ? "current-password" : "new-password"}
-          required
-          minLength={mode === "inscription" ? 10 : undefined}
-          className="champ font-normal"
-          value={mdp}
-          onChange={(e) => setMdp(e.target.value)}
-        />
-      </label>
+      <h2 className="text-lg font-semibold">{titres[mode][0]}</h2>
+      {mode === "connexion" && (
+        <p className="text-sm text-encre-2">Le compte sert à partager les chantiers avec ton équipe. Une fois connecté, l&apos;application marche aussi hors ligne.</p>
+      )}
+      {mode === "inscription" && (
+        <label className="etiquette">Ton nom, tel que l&apos;équipe le verra
+          <input autoComplete="name" required maxLength={120} className="champ font-normal" value={nom} onChange={(e) => setNom(e.target.value)} />
+        </label>
+      )}
+      {mode !== "reinitialiser" && (
+        <label className="etiquette">E-mail
+          <input type="email" autoComplete="email" required className="champ font-normal" value={email} onChange={(e) => setEmail(e.target.value)} />
+        </label>
+      )}
+      {mode !== "oubli" && (
+        <label className="etiquette">Mot de passe
+          <input
+            type="password"
+            autoComplete={mode === "connexion" ? "current-password" : "new-password"}
+            required
+            minLength={mode === "connexion" ? undefined : 10}
+            className="champ font-normal"
+            value={mdp}
+            onChange={(e) => setMdp(e.target.value)}
+          />
+        </label>
+      )}
       {etat && <Encart ton={etat.ton} titre={etat.texte} />}
-      <button type="submit" disabled={envoi} className="bouton-principal">{mode === "connexion" ? "Se connecter" : "Créer le compte"}</button>
-      <button type="button" className="text-sm text-accent underline" onClick={() => { setMode(mode === "connexion" ? "inscription" : "connexion"); setEtat(null); }}>
-        {mode === "connexion" ? "Pas encore de compte ? En créer un" : "Déjà un compte ? Se connecter"}
-      </button>
+      <button type="submit" disabled={envoi} className="bouton-principal">{titres[mode][1]}</button>
+      <div className="flex flex-wrap justify-between gap-2 text-sm">
+        {mode === "connexion" ? (
+          <>
+            <button type="button" className="text-accent underline" onClick={() => changer("inscription")}>Pas encore de compte ? En créer un</button>
+            <button type="button" className="text-accent underline" onClick={() => changer("oubli")}>Mot de passe oublié</button>
+          </>
+        ) : (
+          <button type="button" className="text-accent underline" onClick={() => changer("connexion")}>Retour à la connexion</button>
+        )}
+      </div>
     </form>
   );
 }
-
-type Membre = { user_id: string; role: Role; nom_affiche: string };
 
 function Equipe() {
   const { user, org, orgs, choisirOrg, rechargerOrgs, deconnexion, enAttente, enLigne } = useSession();
@@ -101,31 +131,40 @@ function Equipe() {
   const locaux = useLiveQuery(() => db.chantiers.where("org_id").equals(ORG_LOCALE).count(), [], 0);
 
   useEffect(() => {
-    if (!supabase || !org || !enLigne) return;
-    supabase.from("membres").select("user_id, role, nom_affiche").eq("org_id", org.id).then(({ data }) => setMembres((data ?? []) as Membre[]));
+    if (!org || !enLigne) return;
+    api.membres(org.id).then(setMembres, () => setMembres([]));
   }, [org, enLigne]);
 
   async function creer(e: React.FormEvent) {
     e.preventDefault();
     setErreur(null);
-    const { data, error } = await supabase!.rpc("creer_organisation", { p_nom: nomOrg, p_nom_affiche: nomAffiche });
-    if (error) return setErreur(messageErreur(error));
-    await rechargerOrgs();
-    await choisirOrg(data as string);
+    try {
+      const o = await api.creerOrganisation(nomOrg, nomAffiche);
+      await rechargerOrgs();
+      await choisirOrg(o.id);
+    } catch (err) {
+      setErreur(messageErreur(err));
+    }
   }
 
   async function rejoindre(e: React.FormEvent) {
     e.preventDefault();
     setErreur(null);
-    const { data, error } = await supabase!.rpc("rejoindre_organisation", { p_code: code, p_nom_affiche: nomAffiche });
-    if (error) return setErreur(messageErreur(error));
-    await rechargerOrgs();
-    await choisirOrg(data as string);
+    try {
+      const o = await api.rejoindre(code, nomAffiche);
+      await rechargerOrgs();
+      await choisirOrg(o.id);
+    } catch (err) {
+      setErreur(messageErreur(err));
+    }
   }
 
   async function changerRole(uid: string, role: Role) {
-    const { error } = await supabase!.rpc("changer_role", { p_org: org!.id, p_user: uid, p_role: role });
-    if (error) return setErreur(messageErreur(error));
+    try {
+      await api.changerRole(org!.id, uid, role);
+    } catch (err) {
+      return setErreur(messageErreur(err));
+    }
     setMembres((l) => l.map((m) => (m.user_id === uid ? { ...m, role } : m)));
   }
 
@@ -159,17 +198,22 @@ function Equipe() {
         <section className="carte flex flex-col gap-4 p-5 md:p-6">
           <h2 className="text-lg font-semibold">{org.nom}</h2>
           <p className="text-sm">Ton rôle : <strong>{ROLES[org.role]}</strong></p>
-          <div className="rounded-md bg-surface-2 p-3.5">
-            <div className="text-[13px] text-encre-2">Code d&apos;invitation à donner à ton équipe</div>
-            <div className="font-mono text-xl font-semibold tracking-wider">{org.code_invitation}</div>
-          </div>
+          {org.code_invitation && (
+            <div className="rounded-md bg-surface-2 p-3.5">
+              <div className="text-[13px] text-encre-2">Code d&apos;invitation à donner à ton équipe</div>
+              <div className="font-mono text-xl font-semibold tracking-wider">{org.code_invitation}</div>
+            </div>
+          )}
           <div>
             <h3 className="mb-2 text-sm font-semibold">Membres</h3>
             {!enLigne && <p className="text-sm text-encre-2">Liste disponible une fois en ligne.</p>}
             <ul className="divide-y divide-bord rounded-md border border-bord">
               {membres.map((m) => (
                 <li key={m.user_id} className="flex flex-wrap items-center justify-between gap-3 px-3.5 py-2.5 text-sm">
-                  <span>{m.nom_affiche || "Sans nom"}{m.user_id === user?.id && " (toi)"}</span>
+                  <span>
+                    {m.nom_affiche || "Sans nom"}{m.user_id === user?.id && " (toi)"}
+                    <span className="block text-[13px] text-encre-2">{m.email}</span>
+                  </span>
                   {org.role === "chef" && m.user_id !== user?.id ? (
                     <select aria-label={`Rôle de ${m.nom_affiche || "ce membre"}`} className="champ w-auto font-normal" value={m.role} onChange={(e) => changerRole(m.user_id, e.target.value as Role)}>
                       {Object.entries(ROLES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -203,9 +247,9 @@ function Equipe() {
               <button type="submit" className="bouton-secondaire">Créer l&apos;organisation (tu en seras chef de mission)</button>
             </form>
           </div>
-          {erreur && <Encart ton="erreur" titre={erreur} />}
         </section>
       )}
+      {erreur && <Encart ton="erreur" titre={erreur} />}
     </>
   );
 }

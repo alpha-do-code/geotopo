@@ -20,10 +20,10 @@ function Icone({ d }: { d: string }) {
 }
 
 export function EtatSync() {
-  const { configure, user, org, enLigne, enAttente, sync, synchroniserMaintenant } = useSession();
+  const { user, org, enLigne, enAttente, sync, synchroniserMaintenant } = useSession();
   let texte: string;
   let ton: string;
-  if (!configure || !user || !org) {
+  if (!user || !org) {
     texte = enAttente ? `Local · ${enAttente} à envoyer` : "Données sur cet appareil";
     ton = "bg-info-fond text-info";
   } else if (!enLigne) {

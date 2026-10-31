@@ -52,7 +52,7 @@ export class SyncService {
     if (table === "acteurs") {
       const membres = new Set((await this.prisma.membres.findMany({ where: { org_id: org }, select: { user_id: true } })).map((m) => m.user_id));
       valides = valides.filter((l) => {
-        if (l.user_id == null || membres.has(String(l.user_id))) return true;
+        if (l.user_id == null || (typeof l.user_id === "string" && membres.has(l.user_id))) return true;
         rejetees.push({ id: String(l.id), motif: "user_id n'est pas membre de l'organisation" });
         return false;
       });

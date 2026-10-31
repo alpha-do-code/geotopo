@@ -1,21 +1,18 @@
 "use client";
 
-import type { User } from "@supabase/supabase-js";
 import { useLiveQuery } from "dexie-react-hooks";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { db, ecrireMeta, lireMeta, ORG_LOCALE, rattacherDonneesLocales } from "@/lib/db";
-import type { Role } from "@geotopo/metier";
-import { supabase } from "@/lib/supabase";
+import { api, ErreurApi, renouveler, transport, type Organisation, type Utilisateur } from "@/lib/api";
+import { ecrireMeta, lireMeta, ORG_LOCALE, rattacherDonneesLocales, viderBaseLocale } from "@/lib/db";
 import { nombreEnAttente, synchroniser } from "@/lib/sync";
 
-export type Organisation = { id: string; nom: string; code_invitation: string; role: Role };
+export type { Organisation };
 
 type EtatSync = { enCours: boolean; derniere: string | null; erreur: string | null };
 
 type Session = {
   pret: boolean;
-  configure: boolean; // Supabase configuré pour ce déploiement
-  user: User | null;
+  user: Utilisateur | null;
   orgs: Organisation[];
   org: Organisation | null;
   orgId: string; // organisation active, ou ORG_LOCALE hors compte
@@ -26,6 +23,7 @@ type Session = {
   synchroniserMaintenant: () => Promise<void>;
   choisirOrg: (id: string) => Promise<void>;
   rechargerOrgs: () => Promise<Organisation[]>;
+  connexion: (email: string, motDePasse: string) => Promise<void>;
   deconnexion: () => Promise<void>;
 };
 
@@ -38,10 +36,14 @@ export function useSession() {
 }
 
 const cleOrgs = (uid: string) => `orgs:${uid}`;
+const lireJson = async <T,>(cle: string): Promise<T | null> => {
+  const v = await lireMeta(cle);
+  return v ? (JSON.parse(v) as T) : null;
+};
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [pret, setPret] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<Utilisateur | null>(null);
   const [orgs, setOrgs] = useState<Organisation[]>([]);
   const [orgActiveId, setOrgActiveId] = useState<string | null>(null);
   const [enLigne, setEnLigne] = useState(true);
@@ -54,27 +56,18 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   // Les organisations de l'utilisateur, mises en cache pour le hors-ligne
   const rechargerOrgs = useCallback(async (): Promise<Organisation[]> => {
-    if (!supabase) return [];
-    const { data: auth } = await supabase.auth.getSession();
-    const uid = auth.session?.user.id;
-    if (!uid) return [];
-    const { data, error } = await supabase
-      .from("membres")
-      .select("role, organisations(id, nom, code_invitation)")
-      .eq("user_id", uid);
-    if (error) {
-      const cache = await lireMeta(cleOrgs(uid));
-      const l = cache ? (JSON.parse(cache) as Organisation[]) : [];
+    const u = await lireJson<Utilisateur>("utilisateur");
+    if (!u) return [];
+    try {
+      const liste = await api.organisations();
+      await ecrireMeta(cleOrgs(u.id), JSON.stringify(liste));
+      setOrgs(liste);
+      return liste;
+    } catch {
+      const l = (await lireJson<Organisation[]>(cleOrgs(u.id))) ?? [];
       setOrgs(l);
       return l;
     }
-    type LigneMembre = { role: Role; organisations: { id: string; nom: string; code_invitation: string } | null };
-    const liste = ((data ?? []) as unknown as LigneMembre[])
-      .filter((m) => m.organisations)
-      .map((m) => ({ ...m.organisations!, role: m.role }));
-    await ecrireMeta(cleOrgs(uid), JSON.stringify(liste));
-    setOrgs(liste);
-    return liste;
   }, []);
 
   const choisirOrg = useCallback(async (id: string) => {
@@ -83,46 +76,69 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     setOrgActiveId(id);
   }, []);
 
-  // Démarrage : session gardée sur l'appareil, puis organisations (en ligne ou depuis le cache)
+  const ouvrir = useCallback(
+    async (u: Utilisateur) => {
+      setUser(u);
+      const liste = await rechargerOrgs();
+      const active = await lireMeta("org_active");
+      setOrgActiveId(active && liste.some((o) => o.id === active) ? active : (liste[0]?.id ?? null));
+    },
+    [rechargerOrgs],
+  );
+
+  // Démarrage : session sur le serveur si le réseau le permet, sinon celle gardée sur l'appareil
   useEffect(() => {
     let annule = false;
     (async () => {
       setEnLigne(navigator.onLine);
-      const active = await lireMeta("org_active");
-      if (supabase) {
-        const { data } = await supabase.auth.getSession();
-        const u = data.session?.user ?? null;
-        if (!annule) setUser(u);
-        if (u) {
-          const cache = await lireMeta(cleOrgs(u.id));
-          if (cache && !annule) setOrgs(JSON.parse(cache));
-          const liste = await rechargerOrgs();
-          if (!annule) setOrgActiveId(active && liste.some((o) => o.id === active) ? active : (liste[0]?.id ?? active));
-        }
+      const garde = await lireJson<Utilisateur>("utilisateur");
+      let u: Utilisateur | null = garde;
+      try {
+        u = await renouveler();
+        await ecrireMeta("utilisateur", u ? JSON.stringify(u) : null);
+      } catch {
+        // Hors ligne : on garde l'utilisateur connu de l'appareil, la synchro reprendra au retour du réseau
       }
+      if (annule) return;
+      if (u) await ouvrir(u);
       if (!annule) setPret(true);
     })();
-    const sub = supabase?.auth.onAuthStateChange((_e, s) => setUser(s?.user ?? null));
     const enLigneOn = () => setEnLigne(true);
     const enLigneOff = () => setEnLigne(false);
     window.addEventListener("online", enLigneOn);
     window.addEventListener("offline", enLigneOff);
     return () => {
       annule = true;
-      sub?.data.subscription.unsubscribe();
       window.removeEventListener("online", enLigneOn);
       window.removeEventListener("offline", enLigneOff);
     };
-  }, [rechargerOrgs]);
+  }, [ouvrir]);
+
+  const connexion = useCallback(
+    async (email: string, motDePasse: string) => {
+      const u = await api.connexion(email, motDePasse);
+      // Un autre compte sur cet appareil : on ne mélange pas ses données
+      const precedent = await lireJson<Utilisateur>("utilisateur");
+      if (precedent && precedent.id !== u.id) await viderBaseLocale();
+      await ecrireMeta("utilisateur", JSON.stringify(u));
+      await ouvrir(u);
+    },
+    [ouvrir],
+  );
 
   const synchroniserMaintenant = useCallback(async () => {
-    if (!supabase || !user || !org || syncEnCours.current || !navigator.onLine) return;
+    if (!user || !org || syncEnCours.current || !navigator.onLine) return;
     syncEnCours.current = true;
     setSync((s) => ({ ...s, enCours: true }));
     try {
-      await synchroniser(supabase, org.id);
-      setSync({ enCours: false, derniere: new Date().toISOString(), erreur: null });
+      const bilan = await synchroniser(transport, org.id);
+      const refus = bilan.rejetees.length ? `${bilan.rejetees.length} modification(s) refusée(s) par le serveur : ${bilan.rejetees[0].motif}` : null;
+      setSync({ enCours: false, derniere: new Date().toISOString(), erreur: refus });
     } catch (e) {
+      if (e instanceof ErreurApi && e.status === 401) {
+        setUser(null);
+        await ecrireMeta("utilisateur", null);
+      }
       setSync((s) => ({ ...s, enCours: false, erreur: e instanceof Error ? e.message : String(e) }));
     } finally {
       syncEnCours.current = false;
@@ -143,14 +159,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, [enAttente, synchroniserMaintenant]);
 
   const deconnexion = useCallback(async () => {
-    if (!supabase) return;
-    await supabase.auth.signOut();
+    await api.deconnexion().catch(() => undefined);
     // Appareil partagé : on efface les données de l'organisation sur cet appareil
-    await db.transaction("rw", db.chantiers, db.points, db.meta, async () => {
-      await db.chantiers.clear();
-      await db.points.clear();
-      await db.meta.clear();
-    });
+    await viderBaseLocale();
+    setUser(null);
     setOrgs([]);
     setOrgActiveId(null);
   }, []);
@@ -158,7 +170,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const valeur = useMemo<Session>(
     () => ({
       pret,
-      configure: !!supabase,
       user,
       orgs,
       org,
@@ -171,9 +182,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       synchroniserMaintenant,
       choisirOrg,
       rechargerOrgs,
+      connexion,
       deconnexion,
     }),
-    [pret, user, orgs, org, orgId, enLigne, enAttente, sync, synchroniserMaintenant, choisirOrg, rechargerOrgs, deconnexion],
+    [pret, user, orgs, org, orgId, enLigne, enAttente, sync, synchroniserMaintenant, choisirOrg, rechargerOrgs, connexion, deconnexion],
   );
 
   return <Ctx.Provider value={valeur}>{children}</Ctx.Provider>;

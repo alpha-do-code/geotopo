@@ -11,13 +11,12 @@
     "test:sql": "./scripts/tester-sql.sh"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.118.0",
+    "@geotopo/metier": "*",
     "dexie": "^4.4.7",
     "dexie-react-hooks": "^4.4.0",
     "next": "16.4.3",
     "react": "19.3.0",
-    "react-dom": "19.3.0",
-    "@geotopo/metier": "*"
+    "react-dom": "19.3.0"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",

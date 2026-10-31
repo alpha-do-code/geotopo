@@ -2,6 +2,18 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "geotopo-api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "-w", "@geotopo/api"],
+      "port": 3000
+    },
+    {
+      "name": "geotopo-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "-w", "@geotopo/web"],
+      "port": 3001
+    },
+    {
       "name": "geotopo-export",
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "4310", "--bind", "127.0.0.1", "--directory", "apps/web/out"],
