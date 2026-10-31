@@ -6,6 +6,7 @@ import { CONFIG, lireConfig } from "./config.js";
 import { OrganisationsModule } from "./organisations/organisations.module.js";
 import { PrismaService } from "./prisma.service.js";
 import { SanteController } from "./sante.controller.js";
+import { SyncModule } from "./sync/sync.module.js";
 
 @Global()
 @Module({
@@ -14,6 +15,7 @@ import { SanteController } from "./sante.controller.js";
     ThrottlerModule.forRoot([{ name: "general", ttl: 60_000, limit: 300 }]),
     AuthModule,
     OrganisationsModule,
+    SyncModule,
   ],
   controllers: [SanteController],
   providers: [
