@@ -1,6 +1,7 @@
 "use client";
 
 import { useLiveQuery } from "dexie-react-hooks";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Encart } from "@/components/choix";
 import { useSession } from "@/components/session";
@@ -18,6 +19,14 @@ export default function Compte() {
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 md:py-8">
       <h1 className="text-2xl font-bold md:text-3xl">Compte et équipe</h1>
       {!s.user ? <Connexion /> : <Equipe />}
+      {/* Sur téléphone, les référentiels n'ont pas de place dans la barre du bas : on y accède d'ici */}
+      <Link href="/referentiels/" className="carte flex items-center justify-between gap-3 p-4 hover:border-bord-fort md:hidden">
+        <span>
+          <span className="block font-semibold">Référentiels et tolérances</span>
+          <span className="block text-sm text-encre-2">Classes de précision, textes ivoiriens et marocains, méthodes</span>
+        </span>
+        <span aria-hidden="true" className="text-accent">→</span>
+      </Link>
     </main>
   );
 }

@@ -77,3 +77,17 @@ export function cyclerLettre(orgId: string, tacheId: string, acteurId: string) {
 }
 
 export type { Acteur, Dependance, Indicateur, Objectif, Raci, Tache };
+
+// Toutes les données de l'organisation active, pour les vues qui couvrent plusieurs chantiers
+export function useOrganisation(orgId: string) {
+  const chantiers = useLiveQuery(() => db.chantiers.where("org_id").equals(orgId).filter((c) => !c.supprime).toArray().then((l) => l.sort((a, b) => a.nom.localeCompare(b.nom, "fr"))), [orgId]);
+  const points = useLiveQuery(() => db.points.where("org_id").equals(orgId).filter((p) => !p.supprime).toArray(), [orgId]);
+  const taches = useLiveQuery(() => db.taches.where("org_id").equals(orgId).filter((t) => !t.supprime).toArray().then((l) => l.sort((a, b) => a.ordre - b.ordre)), [orgId]);
+  const raci = useLiveQuery(() => db.raci.where("org_id").equals(orgId).filter((r) => !r.supprime).toArray(), [orgId]);
+  const acteurs = useLiveQuery(() => db.acteurs.where("org_id").equals(orgId).filter((a) => !a.supprime).toArray(), [orgId]);
+  const objectifs = useLiveQuery(() => db.objectifs.where("org_id").equals(orgId).filter((o) => !o.supprime).toArray().then((l) => l.sort(parOrdre)), [orgId]);
+  const indicateurs = useLiveQuery(() => db.indicateurs.where("org_id").equals(orgId).filter((i) => !i.supprime).toArray().then((l) => l.sort(parOrdre)), [orgId]);
+  if (!chantiers || !points || !taches || !raci || !acteurs || !objectifs || !indicateurs) return null;
+  return { chantiers, points, taches, raci, acteurs, objectifs, indicateurs };
+}
+export type DonneesOrganisation = NonNullable<ReturnType<typeof useOrganisation>>;

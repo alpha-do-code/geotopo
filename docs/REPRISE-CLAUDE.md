@@ -9,6 +9,12 @@ Une PWA pour suivre les travaux de topographie, géodésie et géomatique d'une 
 ## 2. Fonctionnalités livrées
 
 - ✅ **Tableau de bord** : conformité, avancement réel face au prévu, retard et atteinte des indicateurs (testé dans le navigateur)
+- ✅ **Vues globales dans le menu** :
+  - Planning : tous les chantiers sur un Gantt, jalons à tenir, chantiers sans planning ;
+  - Qui fait quoi : charge par personne d'après les RACI, matrices incomplètes ;
+  - Indicateurs : atteinte par chantier, indicateurs à risque.
+  Chaque ligne ouvre la fiche sur le bon volet (`/chantier/?id=…&volet=planning|raci|indicateurs`). Sur téléphone, RACI et Indicateurs sont réunis sous « Suivi »
+- ✅ **Volet Contrôle en 5 étapes repliables** (chantier, exigences, moyens, points, résultat et validation), avec un bandeau de synthèse fixe (`components/controle.tsx`)
 - ✅ **Fiche chantier, volet Contrôle** : exigences, alerte de compatibilité méthode / classe, import CSV, coordonnées E, N, H ou X, Y, Z, EMQ et verdict, export CSV, PV imprimable
 - ✅ **Volet Planning** :
   - modèle de tâches par nature de travaux, Gantt SVG (glisser pour décaler ou allonger), dépendances, jalons, retards en rouge (testé dans le navigateur, y compris sur téléphone) ;
@@ -26,6 +32,7 @@ Une PWA pour suivre les travaux de topographie, géodésie et géomatique d'une 
 
 - `apps/web/src/app/` : les pages (`/`, `/chantier/?id=`, `/terrain/?id=`, `/referentiels/`, `/compte/`)
 - `apps/web/src/components/gestion/` : planning (Gantt), RACI, indicateurs, accès aux données (`donnees.ts`)
+- `apps/web/src/app/planning|raci|indicateurs/` : vues globales ; `components/controle.tsx` : volet Contrôle ; `components/liste.tsx` : liste déroulante maison
 - `apps/web/src/lib/` :
   - `db.ts` : base locale Dexie v2 ;
   - `sync.ts` : synchronisation par transport ;
