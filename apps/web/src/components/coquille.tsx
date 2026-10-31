@@ -62,7 +62,7 @@ export function Coquille({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-dvh flex-col md:flex-row">
       <nav aria-label="Navigation principale" className="pas-impression hidden w-60 shrink-0 flex-col gap-1 bg-nav p-4 md:flex">
         <Link href="/" className="mb-6 flex items-center gap-2.5 px-2 text-lg font-bold text-white">
-          <Logo />
+          <Logo taille={32} />
           GeoTopo
         </Link>
         {LIENS.map((l) => (
@@ -86,7 +86,7 @@ export function Coquille({ children }: { children: React.ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col pb-20 md:pb-0">
         <header className="pas-impression flex items-center justify-between gap-3 bg-nav px-4 py-3 md:hidden">
-          <Link href="/" className="flex items-center gap-2 font-bold text-white"><Logo taille={22} />GeoTopo</Link>
+          <Link href="/" className="flex items-center gap-2 font-bold text-white"><Logo taille={26} />GeoTopo</Link>
           <EtatSync />
         </header>
         {children}

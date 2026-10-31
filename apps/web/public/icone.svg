@@ -1,22 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Symbole GeoTopo (logo créé dans Canva, redessiné en vecteur) : triangle de triangulation, réticule de visée, borne -->
-  <rect width="512" height="512" rx="96" fill="#0b181e"/>
-  <g transform="translate(256 256) scale(0.62) translate(-512 -413)">
-    <mask id="m">
-      <rect x="0" y="0" width="1024" height="1024" fill="#fff"/>
-      <rect x="430" y="560" width="165" height="80" fill="#000"/>
-      <circle cx="512" cy="430" r="30" fill="#000"/>
-    </mask>
-    <g fill="#7FD1BC">
-      <g mask="url(#m)">
-        <path fill-rule="evenodd" d="M512 108 L823 630 H201 Z M512 235 L298 575 H727 Z"/>
-        <rect x="504" y="235" width="16" height="290"/>
-        <rect x="389" y="421" width="246" height="18"/>
-        <circle cx="512" cy="430" r="48"/>
+  <!-- Symbole GeoTopo (logo créé dans Canva, redessiné en vecteur) : épingle de localisation et courbes de niveau -->
+  <rect width="512" height="512" rx="96" fill="#061612"/>
+  <g transform="translate(256 256) scale(0.66) translate(-512 -420)">
+    <clipPath id="tete"><path d="M512 600 L366 398 A178 178 0 1 1 658 398 Z"/></clipPath>
+    <mask id="m"><rect width="1024" height="1024" fill="#fff"/><circle cx="512" cy="300" r="80" fill="#000"/></mask>
+    <g fill="none" stroke="#7FD1BC" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+      <g clip-path="url(#tete)" mask="url(#m)">
+        <path d="M330 230 C 400 190, 450 170, 500 120"/>
+        <path d="M560 120 C 520 190, 600 240, 700 230"/>
+        <path d="M330 330 C 400 330, 410 420, 490 420 C 560 420, 560 480, 520 540"/>
+        <path d="M700 340 C 620 350, 600 400, 600 470"/>
       </g>
-      <circle cx="512" cy="430" r="17"/>
-      <path d="M468 520 H556 L581 690 H443 Z"/>
-      <rect x="408" y="688" width="208" height="30"/>
+      <path d="M512 600 L366 398 A178 178 0 1 1 658 398 Z"/>
+      <circle cx="512" cy="300" r="68"/>
+      <path d="M440 612 C 470 598, 556 598, 584 612 C 600 626, 560 636, 512 636 C 464 636, 424 626, 440 612 Z" stroke-width="18"/>
+      <path d="M360 600 C 420 572, 610 572, 664 600 C 700 622, 650 670, 512 670 C 380 670, 320 630, 360 600 Z" stroke-width="18"/>
+      <path d="M290 590 C 360 548, 650 540, 730 588 C 790 624, 720 712, 512 712 C 320 712, 230 640, 290 590 Z" stroke-width="18"/>
     </g>
   </g>
 </svg>
