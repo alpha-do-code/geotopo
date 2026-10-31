@@ -1,0 +1,280 @@
+// GeoTopo : schéma de la base.
+// Les contraintes CHECK et les déclencheurs (que Prisma ne sait pas décrire)
+// sont ajoutés à la main dans les migrations SQL.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── Comptes ──────────────────────────────────────────────────────────────────
+
+model utilisateurs {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email             String    @unique
+  mot_de_passe      String
+  nom_affiche       String    @default("")
+  email_confirme_le DateTime? @db.Timestamptz(6)
+  cree_le           DateTime  @default(now()) @db.Timestamptz(6)
+
+  sessions    sessions[]
+  jetons      jetons_email[]
+  membres     membres[]
+}
+
+// Jeton de renouvellement : seul son empreinte SHA-256 est stockée.
+// famille : toutes les rotations d'une même connexion ; un jeton déjà utilisé qui revient
+// révoque toute la famille (vol de jeton).
+model sessions {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  utilisateur_id String    @db.Uuid
+  famille        String    @db.Uuid
+  jeton_hash     String    @unique
+  expire_le      DateTime  @db.Timestamptz(6)
+  revoque_le     DateTime? @db.Timestamptz(6)
+  cree_le        DateTime  @default(now()) @db.Timestamptz(6)
+
+  utilisateur utilisateurs @relation(fields: [utilisateur_id], references: [id], onDelete: Cascade)
+
+  @@index([utilisateur_id])
+  @@index([famille])
+}
+
+model jetons_email {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  utilisateur_id String    @db.Uuid
+  type           String // confirmation | reinitialisation
+  jeton_hash     String    @unique
+  expire_le      DateTime  @db.Timestamptz(6)
+  utilise_le     DateTime? @db.Timestamptz(6)
+  cree_le        DateTime  @default(now()) @db.Timestamptz(6)
+
+  utilisateur utilisateurs @relation(fields: [utilisateur_id], references: [id], onDelete: Cascade)
+
+  @@index([utilisateur_id])
+}
+
+// ── Organisations ────────────────────────────────────────────────────────────
+
+model organisations {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nom             String
+  code_invitation String   @unique @default(dbgenerated("encode(gen_random_bytes(6), 'hex')"))
+  cree_le         DateTime @default(now()) @db.Timestamptz(6)
+
+  membres     membres[]
+  chantiers   chantiers[]
+  points      points[]
+  taches      taches[]
+  dependances dependances[]
+  acteurs     acteurs[]
+  raci        raci[]
+  objectifs   objectifs[]
+  indicateurs indicateurs[]
+}
+
+model membres {
+  org_id      String   @db.Uuid
+  user_id     String   @db.Uuid
+  role        String   @default("operateur") // chef | operateur | controleur
+  nom_affiche String   @default("")
+  rejoint_le  DateTime @default(now()) @db.Timestamptz(6)
+
+  organisation organisations @relation(fields: [org_id], references: [id], onDelete: Cascade)
+  utilisateur  utilisateurs  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@id([org_id, user_id])
+  @@index([user_id])
+}
+
+// ── Données synchronisées ────────────────────────────────────────────────────
+// Identifiants générés sur l'appareil. updated_at : horodatage de l'appareil (la modification
+// la plus récente gagne). server_updated_at : posé par la base, curseur de la synchro descendante.
+
+model chantiers {
+  id                String    @id @db.Uuid
+  org_id            String    @db.Uuid
+  nom               String
+  lieu              String    @default("")
+  client            String    @default("")
+  referentiel       String    @default("CDC")
+  nature            String
+  methode           String
+  appareil          String
+  appareil_modele   String    @default("")
+  etalonnage_le     DateTime? @db.Date
+  classe            Int       @db.SmallInt
+  tolerance_cm      Decimal?
+  coef_tolerance    Decimal   @default(2.5)
+  systeme_coord     String    @default("ENH")
+  type_controle     String    @default("points_connus")
+  controle_par      String    @default("bureau")
+  verdict           String?
+  valide_par        String?   @db.Uuid
+  valide_le         DateTime? @db.Timestamptz(6)
+  supprime          Boolean   @default(false)
+  cree_par          String?   @db.Uuid
+  updated_at        DateTime  @db.Timestamptz(6)
+  server_updated_at DateTime  @default(now()) @db.Timestamptz(6)
+
+  organisation organisations @relation(fields: [org_id], references: [id], onDelete: Cascade)
+  points       points[]
+  taches       taches[]
+  objectifs    objectifs[]
+
+  @@index([org_id, server_updated_at])
+}
+
+model points {
+  id                String   @id @db.Uuid
+  org_id            String   @db.Uuid
+  chantier_id       String   @db.Uuid
+  code              String
+  phase             String // leve | controle
+  systeme           String // ENH | XYZ
+  a                 Float
+  b                 Float
+  c                 Float
+  observation       String   @default("")
+  mesure_le         DateTime @db.Timestamptz(6)
+  supprime          Boolean  @default(false)
+  cree_par          String?  @db.Uuid
+  updated_at        DateTime @db.Timestamptz(6)
+  server_updated_at DateTime @default(now()) @db.Timestamptz(6)
+
+  organisation organisations @relation(fields: [org_id], references: [id], onDelete: Cascade)
+  chantier     chantiers     @relation(fields: [chantier_id], references: [id], onDelete: Cascade)
+
+  @@index([org_id, server_updated_at])
+  @@index([chantier_id])
+}
+
+// ── Gestion : planning, RACI, indicateurs ────────────────────────────────────
+
+model taches {
+  id                String   @id @db.Uuid
+  org_id            String   @db.Uuid
+  chantier_id       String   @db.Uuid
+  titre             String
+  debut             DateTime @db.Date
+  fin               DateTime @db.Date
+  avancement        Int      @default(0) @db.SmallInt
+  jalon             Boolean  @default(false)
+  ordre             Int      @default(0)
+  cle_modele        String   @default("")
+  supprime          Boolean  @default(false)
+  cree_par          String?  @db.Uuid
+  updated_at        DateTime @db.Timestamptz(6)
+  server_updated_at DateTime @default(now()) @db.Timestamptz(6)
+
+  organisation organisations @relation(fields: [org_id], references: [id], onDelete: Cascade)
+  chantier     chantiers     @relation(fields: [chantier_id], references: [id], onDelete: Cascade)
+  dependances  dependances[] @relation("tache")
+  suivantes    dependances[] @relation("depend_de")
+  raci         raci[]
+
+  @@index([org_id, server_updated_at])
+  @@index([chantier_id])
+}
+
+// La tâche tache_id ne commence qu'après la fin de depend_de
+model dependances {
+  id                String   @id @db.Uuid
+  org_id            String   @db.Uuid
+  tache_id          String   @db.Uuid
+  depend_de         String   @db.Uuid
+  supprime          Boolean  @default(false)
+  cree_par          String?  @db.Uuid
+  updated_at        DateTime @db.Timestamptz(6)
+  server_updated_at DateTime @default(now()) @db.Timestamptz(6)
+
+  organisation organisations @relation(fields: [org_id], references: [id], onDelete: Cascade)
+  tache        taches        @relation("tache", fields: [tache_id], references: [id], onDelete: Cascade)
+  precedente   taches        @relation("depend_de", fields: [depend_de], references: [id], onDelete: Cascade)
+
+  @@index([org_id, server_updated_at])
+}
+
+// Personne qui figure dans la matrice RACI : un membre (user_id) ou un externe sans compte
+model acteurs {
+  id                String   @id @db.Uuid
+  org_id            String   @db.Uuid
+  nom               String
+  organisme         String   @default("")
+  fonction          String   @default("")
+  user_id           String?  @db.Uuid
+  supprime          Boolean  @default(false)
+  cree_par          String?  @db.Uuid
+  updated_at        DateTime @db.Timestamptz(6)
+  server_updated_at DateTime @default(now()) @db.Timestamptz(6)
+
+  organisation organisations @relation(fields: [org_id], references: [id], onDelete: Cascade)
+  raci         raci[]
+
+  @@index([org_id, server_updated_at])
+}
+
+model raci {
+  id                String   @id @db.Uuid
+  org_id            String   @db.Uuid
+  tache_id          String   @db.Uuid
+  acteur_id         String   @db.Uuid
+  lettre            String // R | A | C | I
+  supprime          Boolean  @default(false)
+  cree_par          String?  @db.Uuid
+  updated_at        DateTime @db.Timestamptz(6)
+  server_updated_at DateTime @default(now()) @db.Timestamptz(6)
+
+  organisation organisations @relation(fields: [org_id], references: [id], onDelete: Cascade)
+  tache        taches        @relation(fields: [tache_id], references: [id], onDelete: Cascade)
+  acteur       acteurs       @relation(fields: [acteur_id], references: [id], onDelete: Cascade)
+
+  @@index([org_id, server_updated_at])
+}
+
+model objectifs {
+  id                String   @id @db.Uuid
+  org_id            String   @db.Uuid
+  chantier_id       String   @db.Uuid
+  libelle           String
+  ordre             Int      @default(0)
+  supprime          Boolean  @default(false)
+  cree_par          String?  @db.Uuid
+  updated_at        DateTime @db.Timestamptz(6)
+  server_updated_at DateTime @default(now()) @db.Timestamptz(6)
+
+  organisation organisations @relation(fields: [org_id], references: [id], onDelete: Cascade)
+  chantier     chantiers     @relation(fields: [chantier_id], references: [id], onDelete: Cascade)
+  indicateurs  indicateurs[]
+
+  @@index([org_id, server_updated_at])
+}
+
+model indicateurs {
+  id                   String   @id @db.Uuid
+  org_id               String   @db.Uuid
+  objectif_id          String   @db.Uuid
+  libelle              String
+  unite                String   @default("")
+  reference            Float?
+  cible                Float
+  sens                 String   @default("hausse") // hausse : plus c'est haut, mieux c'est ; baisse : l'inverse
+  mode                 String   @default("manuel") // manuel | auto
+  cle_auto             String   @default("")
+  realise              Float?
+  source_verification  String   @default("")
+  ordre                Int      @default(0)
+  supprime             Boolean  @default(false)
+  cree_par             String?  @db.Uuid
+  updated_at           DateTime @db.Timestamptz(6)
+  server_updated_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  organisation organisations @relation(fields: [org_id], references: [id], onDelete: Cascade)
+  objectif     objectifs     @relation(fields: [objectif_id], references: [id], onDelete: Cascade)
+
+  @@index([org_id, server_updated_at])
+}

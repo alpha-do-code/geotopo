@@ -42,3 +42,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 !.env.example
+
+# client Prisma généré (prisma generate)
+apps/api/src/generated/

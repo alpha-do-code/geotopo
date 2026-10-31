@@ -15,5 +15,9 @@
   },
   "devDependencies": {
     "turbo": "^2.11.10"
+  },
+  "allowScripts": {
+    "argon2@0.45.1": true,
+    "@prisma/engines@7.10.1": true
   }
 }
