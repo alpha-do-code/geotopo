@@ -94,7 +94,7 @@ begin
   if tg_op = 'UPDATE' and new.org_id <> old.org_id then
     raise exception 'Changement d''organisation interdit';
   end if;
-  new.server_updated_at := now();
+  new.server_updated_at := clock_timestamp(); -- distinct par ligne, pour un curseur sans ex aequo
   return new;
 end;
 $$;
