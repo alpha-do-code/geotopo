@@ -7,12 +7,11 @@ import { useState } from "react";
 import { Choix, Encart } from "@/components/choix";
 import { Pastille } from "@/components/pastille";
 import { useSession } from "@/components/session";
-import { compatibilite, formatCm, lireCsv, lireNombre } from "@/lib/calculs";
 import { db, enregistrerChantier, enregistrerPoint, maintenant, type Chantier, type Point } from "@/lib/db";
 import {
   APPAREIL_PAR_DEFAUT, APPAREILS, CLASSES, CONTROLE_PAR, METHODES, NATURES, REFERENTIELS, SYSTEMES, TYPES_CONTROLE,
-  type Methode, type Systeme,
-} from "@/lib/referentiels";
+  compatibilite, formatCm, lireCsv, lireNombre, type Methode, type Systeme,
+} from "@geotopo/metier";
 import { resultatChantier, statutChantier } from "@/lib/statut";
 
 const options = <K extends string>(o: Record<K, string>) => (Object.entries(o) as [K, string][]).map(([valeur, label]) => ({ valeur, label }));

@@ -4,7 +4,7 @@ import type { User } from "@supabase/supabase-js";
 import { useLiveQuery } from "dexie-react-hooks";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { db, ecrireMeta, lireMeta, ORG_LOCALE, rattacherDonneesLocales } from "@/lib/db";
-import type { Role } from "@/lib/referentiels";
+import type { Role } from "@geotopo/metier";
 import { supabase } from "@/lib/supabase";
 import { nombreEnAttente, synchroniser } from "@/lib/sync";
 

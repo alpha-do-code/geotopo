@@ -6,9 +6,8 @@ import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Choix } from "@/components/choix";
 import { useSession } from "@/components/session";
-import { borneClasse, ecartPoint, formatCm, lireNombre } from "@/lib/calculs";
 import { db, enregistrerPoint, maintenant, type Chantier, type Point } from "@/lib/db";
-import { CLASSES, METHODES, REFERENTIELS, SYSTEMES, type Systeme } from "@/lib/referentiels";
+import { borneClasse, CLASSES, ecartPoint, formatCm, lireNombre, METHODES, REFERENTIELS, SYSTEMES, type Systeme } from "@geotopo/metier";
 
 export function SaisieTerrain() {
   const id = useSearchParams().get("id");

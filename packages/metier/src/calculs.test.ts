@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compatibilite, evaluerControle, lireCsv, lireNombre, type Mesure } from "./calculs";
+import { compatibilite, evaluerControle, lireCsv, lireNombre, type Mesure } from "./calculs.js";
 
 const m = (code: string, a: number, b: number, c: number, systeme: "ENH" | "XYZ" = "ENH"): Mesure => ({ code, systeme, a, b, c });
 

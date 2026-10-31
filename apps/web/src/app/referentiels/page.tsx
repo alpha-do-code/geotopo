@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { APPAREIL_PAR_DEFAUT, APPAREILS, CLASSES, MATRICE, METHODES, SOURCES, type Methode } from "@/lib/referentiels";
+import { APPAREIL_PAR_DEFAUT, APPAREILS, CLASSES, MATRICE, METHODES, SOURCES, type Methode } from "@geotopo/metier";
 
 const ONGLETS = [
   { id: "CI", label: "Côte d'Ivoire" },

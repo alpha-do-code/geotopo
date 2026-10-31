@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Encart } from "@/components/choix";
 import { useSession } from "@/components/session";
 import { db, ORG_LOCALE } from "@/lib/db";
-import { ROLES, type Role } from "@/lib/referentiels";
+import { ROLES, type Role } from "@geotopo/metier";
 import { supabase } from "@/lib/supabase";
 
 // Messages d'erreur courts, sans détail technique pour l'utilisateur

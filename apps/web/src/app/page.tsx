@@ -6,9 +6,8 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Pastille } from "@/components/pastille";
 import { useSession } from "@/components/session";
-import { formatCm } from "@/lib/calculs";
 import { db, enregistrerChantier, nouveauChantier } from "@/lib/db";
-import { APPAREILS, CLASSES, METHODES, NATURES, REFERENTIELS, TYPES_CONTROLE, type Nature, type Referentiel } from "@/lib/referentiels";
+import { APPAREILS, CLASSES, formatCm, METHODES, NATURES, REFERENTIELS, TYPES_CONTROLE, type Nature, type Referentiel } from "@geotopo/metier";
 import { resultatChantier, STATUTS, statutChantier, type Statut } from "@/lib/statut";
 
 export default function TableauDeBord() {

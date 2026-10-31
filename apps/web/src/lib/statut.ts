@@ -1,4 +1,4 @@
-import { evaluerControle, type ResultatControle } from "./calculs";
+import { evaluerControle, type ResultatControle } from "@geotopo/metier";
 import type { Chantier, Point } from "./db";
 
 export type Statut = "conforme" | "non_conforme" | "a_valider" | "en_cours";

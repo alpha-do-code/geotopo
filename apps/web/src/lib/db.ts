@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from "dexie";
-import type { Appareil, ControlePar, Methode, Nature, Referentiel, Systeme, TypeControle } from "./referentiels";
+import type { Appareil, ControlePar, Methode, Nature, Referentiel, Systeme, TypeControle } from "@geotopo/metier";
 
 // Organisation des données saisies avant toute connexion. Elles rejoignent la vraie
 // organisation au moment où l'utilisateur en crée une ou en rejoint une.

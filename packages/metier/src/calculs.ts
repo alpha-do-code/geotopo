@@ -1,4 +1,4 @@
-import { CLASSES, MATRICE, type Methode, type Systeme } from "./referentiels";
+import { CLASSES, MATRICE, type Methode, type Systeme } from "./referentiels.js";
 
 // Un point mesuré, coordonnées en mètres dans son système
 export type Mesure = { code: string; systeme: Systeme; a: number; b: number; c: number };
