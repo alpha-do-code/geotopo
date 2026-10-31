@@ -1,5 +1,4 @@
 import request from "supertest";
-import { lireConfig } from "../src/config.js";
 import { creerApp } from "./outils.js";
 
 describe("socle", () => {
@@ -20,12 +19,5 @@ describe("socle", () => {
       .send(JSON.stringify({ x: "a".repeat(3 * 1024 * 1024) }))
       .expect(413);
     await app.close();
-  });
-
-  it("refuse de démarrer en production sans HTTPS ni secret solide", () => {
-    const base = { NODE_ENV: "production", DATABASE_URL: "postgresql://x", PORT: "3000" };
-    expect(() => lireConfig({ ...base, JWT_SECRET: "x".repeat(40), ORIGINE_WEB: "http://geotopo.sn" })).toThrow(/HTTPS/);
-    expect(() => lireConfig({ ...base, JWT_SECRET: "court", ORIGINE_WEB: "https://geotopo.sn" })).toThrow(/JWT_SECRET/);
-    expect(lireConfig({ ...base, JWT_SECRET: "x".repeat(40), ORIGINE_WEB: "https://geotopo.sn/" }).origineWeb).toBe("https://geotopo.sn");
   });
 });

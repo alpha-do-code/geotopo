@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from "dexie";
-import { TABLES_SYNC, type Appareil, type ControlePar, type Methode, type Nature, type Referentiel, type Systeme, type TypeControle } from "@geotopo/metier";
+import { TABLES_SYNC, type Appareil, type LettreRaci, type ControlePar, type Methode, type Nature, type Referentiel, type Systeme, type TypeControle } from "@geotopo/metier";
 
 // Organisation des données saisies avant toute connexion. Elles rejoignent la vraie
 // organisation au moment où l'utilisateur en crée une ou en rejoint une.
@@ -71,7 +71,7 @@ export type Dependance = Synchro & { tache_id: string; depend_de: string };
 // Personne de la matrice RACI : membre (user_id) ou externe sans compte
 export type Acteur = Synchro & { nom: string; organisme: string; fonction: string; user_id: string | null };
 
-export type LettreRaci = "R" | "A" | "C" | "I";
+
 export type Raci = Synchro & { tache_id: string; acteur_id: string; lettre: LettreRaci };
 
 export type Objectif = Synchro & { chantier_id: string; libelle: string; ordre: number };

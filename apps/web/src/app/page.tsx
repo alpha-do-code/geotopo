@@ -7,8 +7,9 @@ import { useMemo, useState } from "react";
 import { Pastille } from "@/components/pastille";
 import { useSession } from "@/components/session";
 import { db, enregistrerChantier, nouveauChantier } from "@/lib/db";
-import { APPAREILS, CLASSES, formatCm, METHODES, NATURES, REFERENTIELS, TYPES_CONTROLE, type Nature, type Referentiel } from "@geotopo/metier";
+import { CLASSES, formatCm, METHODES, NATURES, REFERENTIELS, type Nature, type Referentiel } from "@geotopo/metier";
 import { resultatChantier, STATUTS, statutChantier, type Statut } from "@/lib/statut";
+import { suiviChantier, type Suivi } from "@/lib/suivi";
 
 export default function TableauDeBord() {
   const { orgId, pret } = useSession();
@@ -19,16 +20,21 @@ export default function TableauDeBord() {
 
   const chantiers = useLiveQuery(() => db.chantiers.where("org_id").equals(orgId).filter((c) => !c.supprime).toArray(), [orgId]);
   const points = useLiveQuery(() => db.points.where("org_id").equals(orgId).toArray(), [orgId]);
+  const taches = useLiveQuery(() => db.taches.where("org_id").equals(orgId).filter((t) => !t.supprime).toArray(), [orgId]);
+  const objectifs = useLiveQuery(() => db.objectifs.where("org_id").equals(orgId).filter((o) => !o.supprime).toArray(), [orgId]);
+  const indicateurs = useLiveQuery(() => db.indicateurs.where("org_id").equals(orgId).filter((i) => !i.supprime).toArray(), [orgId]);
 
   const lignes = useMemo(() => {
-    if (!chantiers || !points) return [];
+    if (!chantiers || !points || !taches || !objectifs || !indicateurs) return [];
     return chantiers
       .map((c) => {
         const r = resultatChantier(c, points);
-        return { c, r, statut: statutChantier(c, r) };
+        const objs = new Set(objectifs.filter((o) => o.chantier_id === c.id).map((o) => o.id));
+        const suivi = suiviChantier(r, taches.filter((t) => t.chantier_id === c.id), indicateurs.filter((i) => objs.has(i.objectif_id)));
+        return { c, r, statut: statutChantier(c, r), suivi };
       })
       .sort((a, b) => b.c.updated_at.localeCompare(a.c.updated_at));
-  }, [chantiers, points]);
+  }, [chantiers, points, taches, objectifs, indicateurs]);
 
   const compte = (s: Statut) => lignes.filter((l) => l.statut === s).length;
   const visibles = lignes.filter(
@@ -49,7 +55,7 @@ export default function TableauDeBord() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold md:text-3xl">Chantiers</h1>
-          <p className="mt-1 text-encre-2">Suivi de la conformité au cahier des charges, par chantier.</p>
+          <p className="mt-1 text-encre-2">Conformité au cahier des charges, avancement et résultats, par chantier.</p>
         </div>
         <button type="button" onClick={creer} disabled={!pret} className="bouton-principal">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M8 2v12M2 8h12" /></svg>
@@ -106,13 +112,13 @@ export default function TableauDeBord() {
             <table className="w-full min-w-[960px] text-sm">
               <thead>
                 <tr className="bg-surface-2 text-left text-encre-2">
-                  {["Chantier", "Nature", "Méthode", "Appareil", "Classe exigée", "EMQ obtenu", "Contrôle", "Statut"].map((t) => (
+                  {["Chantier", "Nature", "Méthode", "Classe exigée", "EMQ obtenu", "Avancement", "Retard", "Indicateurs", "Statut"].map((t) => (
                     <th key={t} className="px-4 py-3 font-semibold">{t}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {visibles.map(({ c, r, statut }) => (
+                {visibles.map(({ c, r, statut, suivi }) => (
                   <tr key={c.id} className="border-t border-bord">
                     <td className="px-4 py-3.5">
                       <Link href={`/chantier/?id=${c.id}`} className="font-semibold text-accent hover:underline">{c.nom}</Link>
@@ -120,10 +126,11 @@ export default function TableauDeBord() {
                     </td>
                     <td className="px-4 py-3.5">{NATURES[c.nature]}</td>
                     <td className="px-4 py-3.5">{METHODES[c.methode]}</td>
-                    <td className="px-4 py-3.5">{APPAREILS[c.appareil]}</td>
                     <td className="px-4 py-3.5 font-mono">{c.tolerance_cm ? `${formatCm(c.tolerance_cm)} cm (CDC)` : CLASSES[c.classe].label}</td>
                     <td className="px-4 py-3.5 font-mono">{r.emq == null ? "—" : `${formatCm(r.emq)} cm`}</td>
-                    <td className="px-4 py-3.5">{TYPES_CONTROLE[c.type_controle]}</td>
+                    <td className="px-4 py-3.5"><Avancement suivi={suivi} /></td>
+                    <td className={`px-4 py-3.5 font-mono ${suivi.retard ? "text-erreur" : ""}`}>{suivi.avancement == null ? "—" : suivi.retard ? `${suivi.retard} j` : "0 j"}</td>
+                    <td className="px-4 py-3.5 font-mono">{suivi.atteinte == null ? "—" : `${Math.round(suivi.atteinte)} %`}</td>
                     <td className="px-4 py-3.5"><Pastille statut={statut} /></td>
                   </tr>
                 ))}
@@ -133,7 +140,7 @@ export default function TableauDeBord() {
 
           {/* Cartes sur téléphone */}
           <ul aria-label="Liste des chantiers" className="flex flex-col gap-3 md:hidden">
-            {visibles.map(({ c, r, statut }) => (
+            {visibles.map(({ c, r, statut, suivi }) => (
               <li key={c.id}>
                 <Link href={`/chantier/?id=${c.id}`} className="carte flex flex-col gap-2 p-4">
                   <div className="flex items-start justify-between gap-3">
@@ -144,6 +151,13 @@ export default function TableauDeBord() {
                   <span className="font-mono text-sm">
                     {CLASSES[c.classe].label} · EMQ {r.emq == null ? "—" : `${formatCm(r.emq)} cm`}
                   </span>
+                  {suivi.avancement != null && (
+                    <span className="text-sm">
+                      Avancement {Math.round(suivi.avancement)} %
+                      {suivi.retard > 0 && <span className="text-erreur"> · {suivi.retard} j de retard</span>}
+                      {suivi.atteinte != null && <span className="text-encre-2"> · indicateurs {Math.round(suivi.atteinte)} %</span>}
+                    </span>
+                  )}
                 </Link>
               </li>
             ))}
@@ -151,6 +165,20 @@ export default function TableauDeBord() {
         </>
       )}
     </main>
+  );
+}
+
+// Avancement réel, et en dessous l'avancement prévu à ce jour
+function Avancement({ suivi }: { suivi: Suivi }) {
+  if (suivi.avancement == null) return <span className="text-encre-2">—</span>;
+  const enRetard = suivi.prevu != null && suivi.avancement + 0.5 < suivi.prevu;
+  return (
+    <div className="flex min-w-28 flex-col gap-1">
+      <div className="h-2 overflow-hidden rounded-full bg-surface-2" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(suivi.avancement)} aria-label="Avancement">
+        <div className={`h-full rounded-full ${enRetard ? "bg-alerte" : "bg-accent"}`} style={{ width: `${Math.max(2, suivi.avancement)}%` }} />
+      </div>
+      <span className="font-mono text-[12px] text-encre-2">{Math.round(suivi.avancement)} % · prévu {suivi.prevu == null ? "—" : `${Math.round(suivi.prevu)} %`}</span>
+    </div>
   );
 }
 

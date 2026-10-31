@@ -7,7 +7,10 @@ import { useState } from "react";
 import { Choix, Encart } from "@/components/choix";
 import { Pastille } from "@/components/pastille";
 import { useSession } from "@/components/session";
-import { db, enregistrerChantier, enregistrerPoint, maintenant, type Chantier, type Point } from "@/lib/db";
+import { Indicateurs } from "@/components/gestion/indicateurs";
+import { Planning } from "@/components/gestion/planning";
+import { MatriceRaci } from "@/components/gestion/raci";
+import { db, enregistrer, enregistrerChantier, enregistrerPoint, maintenant, type Chantier, type Point } from "@/lib/db";
 import {
   APPAREIL_PAR_DEFAUT, APPAREILS, CLASSES, CONTROLE_PAR, METHODES, NATURES, REFERENTIELS, SYSTEMES, TYPES_CONTROLE,
   compatibilite, formatCm, lireCsv, lireNombre, type Methode, type Systeme,
@@ -32,8 +35,17 @@ export function FicheChantier() {
   return <Fiche chantier={chantier} points={points} />;
 }
 
+const ONGLETS = [
+  ["controle", "Contrôle"],
+  ["planning", "Planning"],
+  ["raci", "Qui fait quoi (RACI)"],
+  ["indicateurs", "Indicateurs"],
+] as const;
+type Onglet = (typeof ONGLETS)[number][0];
+
 function Fiche({ chantier: c, points }: { chantier: Chantier; points: Point[] }) {
   const { peutValider, user } = useSession();
+  const [onglet, setOnglet] = useState<Onglet>("controle");
   const router = useRouter();
   const maj = (champs: Partial<Chantier>) => enregistrerChantier({ ...c, ...champs });
   const r = resultatChantier(c, points);
@@ -41,8 +53,11 @@ function Fiche({ chantier: c, points }: { chantier: Chantier; points: Point[] })
   const compat = compatibilite(c.methode, c.classe);
   const [a, b, z] = SYSTEMES[c.systeme_coord].axes;
 
+  // La validation fait avancer le jalon « Contrôle de précision » du planning
   async function valider(verdict: Chantier["verdict"]) {
     await maj({ verdict, valide_par: verdict ? (user?.id ?? null) : null, valide_le: verdict ? maintenant() : null });
+    const jalon = await db.taches.where("chantier_id").equals(c.id).filter((t) => !t.supprime && t.cle_modele === "controle").first();
+    if (jalon) await enregistrer("taches", { ...jalon, avancement: verdict ? 100 : 0 });
   }
 
   async function supprimer() {
@@ -80,178 +95,202 @@ function Fiche({ chantier: c, points }: { chantier: Chantier; points: Point[] })
         <p className="text-encre-2">{[c.lieu, REFERENTIELS[c.referentiel], c.client && `Maître d'ouvrage : ${c.client}`].filter(Boolean).join(" · ")}</p>
       </header>
 
-      <div className="grid items-start gap-6 lg:grid-cols-2">
-        <section aria-labelledby="h-cdc" className="carte pas-impression flex flex-col gap-5 p-5 md:p-6">
-          <h2 id="h-cdc" className="text-lg font-semibold">1. Exigences du cahier des charges</h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="etiquette">Lieu
-              <input className="champ font-normal" value={c.lieu} maxLength={200} onChange={(e) => maj({ lieu: e.target.value })} />
-            </label>
-            <label className="etiquette">Maître d&apos;ouvrage
-              <input className="champ font-normal" value={c.client} maxLength={200} onChange={(e) => maj({ client: e.target.value })} />
-            </label>
-            <label className="etiquette">Référentiel
-              <select className="champ font-normal" value={c.referentiel} onChange={(e) => maj({ referentiel: e.target.value as Chantier["referentiel"] })}>
-                {options(REFERENTIELS).map((o) => <option key={o.valeur} value={o.valeur}>{o.label}</option>)}
-              </select>
-            </label>
-            <label className="etiquette">Nature des travaux
-              <select className="champ font-normal" value={c.nature} onChange={(e) => maj({ nature: e.target.value as Chantier["nature"] })}>
-                {options(NATURES).map((o) => <option key={o.valeur} value={o.valeur}>{o.label}</option>)}
-              </select>
-            </label>
-          </div>
+      <nav aria-label="Volets du chantier" className="pas-impression -mx-4 overflow-x-auto px-4">
+        <div role="tablist" className="flex min-w-max gap-1 border-b border-bord">
+          {ONGLETS.map(([cle, label]) => (
+            <button
+              key={cle}
+              type="button"
+              role="tab"
+              aria-selected={onglet === cle}
+              onClick={() => setOnglet(cle)}
+              className={`-mb-px min-h-11 border-b-2 px-4 text-sm font-medium ${onglet === cle ? "border-accent text-encre" : "border-transparent text-encre-2 hover:text-encre"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </nav>
 
-          <Choix legende="Classe de précision exigée" options={CLASSES.map((k, i) => ({ valeur: i, label: k.label }))} valeur={c.classe} onChange={(classe) => maj({ classe })} />
-          <div className="grid gap-3 sm:grid-cols-2">
-            <ChampNombre
-              label="Tolérance du cahier des charges (cm)"
-              aide="Facultatif. Remplace la borne de la classe."
-              valeur={c.tolerance_cm}
-              onChange={(v) => maj({ tolerance_cm: v != null && v > 0 ? v : null })}
-            />
-            <ChampNombre
-              label="Coefficient de tolérance"
-              aide="Écart maximal admis = coefficient × borne. 2,5 par défaut (ANCFCC)."
-              valeur={c.coef_tolerance}
-              onChange={(v) => v != null && v > 0 && v <= 10 && maj({ coef_tolerance: v })}
-            />
-          </div>
+      {onglet === "controle" && (
+        <>
+        <div className="grid items-start gap-6 lg:grid-cols-2">
+          <section aria-labelledby="h-cdc" className="carte pas-impression flex flex-col gap-5 p-5 md:p-6">
+            <h2 id="h-cdc" className="text-lg font-semibold">1. Exigences du cahier des charges</h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="etiquette">Lieu
+                <input className="champ font-normal" value={c.lieu} maxLength={200} onChange={(e) => maj({ lieu: e.target.value })} />
+              </label>
+              <label className="etiquette">Maître d&apos;ouvrage
+                <input className="champ font-normal" value={c.client} maxLength={200} onChange={(e) => maj({ client: e.target.value })} />
+              </label>
+              <label className="etiquette">Référentiel
+                <select className="champ font-normal" value={c.referentiel} onChange={(e) => maj({ referentiel: e.target.value as Chantier["referentiel"] })}>
+                  {options(REFERENTIELS).map((o) => <option key={o.valeur} value={o.valeur}>{o.label}</option>)}
+                </select>
+              </label>
+              <label className="etiquette">Nature des travaux
+                <select className="champ font-normal" value={c.nature} onChange={(e) => maj({ nature: e.target.value as Chantier["nature"] })}>
+                  {options(NATURES).map((o) => <option key={o.valeur} value={o.valeur}>{o.label}</option>)}
+                </select>
+              </label>
+            </div>
 
-          <Choix
-            legende="Méthode de travail"
-            options={options(METHODES)}
-            valeur={c.methode}
-            onChange={(methode: Methode) => maj({ methode, appareil: APPAREIL_PAR_DEFAUT[methode] })}
-          />
-          {compat.niveau === 2 && <Encart ton="ok" titre="Méthode compatible avec la classe exigée" />}
-          {compat.niveau === 1 && (
-            <Encart ton="alerte" titre="Possible avec précautions">
-              {METHODES[c.methode]} n&apos;atteint {CLASSES[c.classe].label} qu&apos;avec des précautions (sessions longues, calage dense, points d&apos;appui).
-            </Encart>
-          )}
-          {compat.niveau === 0 && (
-            <Encart ton="erreur" titre="Méthode insuffisante pour cette classe">
-              {METHODES[c.methode]} atteint couramment {CLASSES[compat.meilleure]?.label ?? "—"} au mieux. Choisir une autre méthode ou faire valider une dérogation.
-            </Encart>
-          )}
+            <Choix legende="Classe de précision exigée" options={CLASSES.map((k, i) => ({ valeur: i, label: k.label }))} valeur={c.classe} onChange={(classe) => maj({ classe })} />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <ChampNombre
+                label="Tolérance du cahier des charges (cm)"
+                aide="Facultatif. Remplace la borne de la classe."
+                valeur={c.tolerance_cm}
+                onChange={(v) => maj({ tolerance_cm: v != null && v > 0 ? v : null })}
+              />
+              <ChampNombre
+                label="Coefficient de tolérance"
+                aide="Écart maximal admis = coefficient × borne. 2,5 par défaut (ANCFCC)."
+                valeur={c.coef_tolerance}
+                onChange={(v) => v != null && v > 0 && v <= 10 && maj({ coef_tolerance: v })}
+              />
+            </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="etiquette">Appareil utilisé
-              <select className="champ font-normal" value={c.appareil} onChange={(e) => maj({ appareil: e.target.value as Chantier["appareil"] })}>
-                {options(APPAREILS).map((o) => <option key={o.valeur} value={o.valeur}>{o.label}</option>)}
-              </select>
-            </label>
-            <label className="etiquette">Modèle et n° de série
-              <input className="champ font-normal" value={c.appareil_modele} maxLength={200} onChange={(e) => maj({ appareil_modele: e.target.value })} />
-            </label>
-            <label className="etiquette">Dernier étalonnage
-              <input type="date" className="champ font-normal" value={c.etalonnage_le ?? ""} onChange={(e) => maj({ etalonnage_le: e.target.value || null })} />
-            </label>
-          </div>
-        </section>
-
-        <section aria-labelledby="h-ctl" className="carte flex flex-col gap-5 p-5 md:p-6">
-          <h2 id="h-ctl" className="text-lg font-semibold">2. Contrôle et acceptabilité</h2>
-          <div className="pas-impression grid gap-3 sm:grid-cols-2">
-            <label className="etiquette">Type de contrôle
-              <select className="champ font-normal" value={c.type_controle} onChange={(e) => maj({ type_controle: e.target.value as Chantier["type_controle"] })}>
-                {options(TYPES_CONTROLE).map((o) => <option key={o.valeur} value={o.valeur}>{o.label}</option>)}
-              </select>
-            </label>
-            <label className="etiquette">Réalisé par
-              <select className="champ font-normal" value={c.controle_par} onChange={(e) => maj({ controle_par: e.target.value as Chantier["controle_par"] })}>
-                {options(CONTROLE_PAR).map((o) => <option key={o.valeur} value={o.valeur}>{o.label}</option>)}
-              </select>
-            </label>
-          </div>
-          <div className="pas-impression">
             <Choix
-              legende="Type de coordonnées"
-              options={(Object.keys(SYSTEMES) as Systeme[]).map((s) => ({ valeur: s, label: SYSTEMES[s].label }))}
-              valeur={c.systeme_coord}
-              onChange={(systeme_coord) => maj({ systeme_coord })}
-              aide={`${SYSTEMES[c.systeme_coord].aide} S'applique aux nouvelles saisies.`}
+              legende="Méthode de travail"
+              options={options(METHODES)}
+              valeur={c.methode}
+              onChange={(methode: Methode) => maj({ methode, appareil: APPAREIL_PAR_DEFAUT[methode] })}
             />
-          </div>
+            {compat.niveau === 2 && <Encart ton="ok" titre="Méthode compatible avec la classe exigée" />}
+            {compat.niveau === 1 && (
+              <Encart ton="alerte" titre="Possible avec précautions">
+                {METHODES[c.methode]} n&apos;atteint {CLASSES[c.classe].label} qu&apos;avec des précautions (sessions longues, calage dense, points d&apos;appui).
+              </Encart>
+            )}
+            {compat.niveau === 0 && (
+              <Encart ton="erreur" titre="Méthode insuffisante pour cette classe">
+                {METHODES[c.methode]} atteint couramment {CLASSES[compat.meilleure]?.label ?? "—"} au mieux. Choisir une autre méthode ou faire valider une dérogation.
+              </Encart>
+            )}
 
-          <div className="overflow-x-auto rounded-md border border-bord">
-            <table className="w-full min-w-[460px] text-sm">
-              <caption className="px-3 py-2.5 text-left text-[13px] text-encre-2">Écarts levé / contrôle, en cm</caption>
-              <thead>
-                <tr className="bg-surface-2 text-right text-encre-2">
-                  <th className="px-3 py-2 text-left font-semibold">Point</th>
-                  <th className="px-3 py-2 font-semibold">d{a}</th>
-                  <th className="px-3 py-2 font-semibold">d{b}</th>
-                  <th className="px-3 py-2 font-semibold">d{z}</th>
-                  <th className="px-3 py-2 font-semibold">{c.systeme_coord === "XYZ" ? "Écart 3D" : "Écart plani"}</th>
-                  <th className="px-3 py-2 font-semibold">Tolérance</th>
-                </tr>
-              </thead>
-              <tbody className="font-mono">
-                {r.ecarts.length === 0 && (
-                  <tr><td colSpan={6} className="px-3 py-4 text-center font-sans text-encre-2">Aucun point contrôlé. Saisis ou importe des points de contrôle portant les mêmes codes que les points levés.</td></tr>
-                )}
-                {r.ecarts.map((e) => (
-                  <tr key={e.code} className="border-t border-bord text-right">
-                    <td className="px-3 py-2 text-left">{e.code}</td>
-                    <td className="px-3 py-2">{signe(e.da)}</td>
-                    <td className="px-3 py-2">{signe(e.db)}</td>
-                    <td className="px-3 py-2">{signe(e.dc)}</td>
-                    <td className="px-3 py-2 font-semibold">{formatCm(e.ecart)}</td>
-                    <td className={`px-3 py-2 font-semibold ${e.dansTolerance ? "text-ok" : "text-erreur"}`}>{e.dansTolerance ? "OK" : "Hors tol."}</td>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="etiquette">Appareil utilisé
+                <select className="champ font-normal" value={c.appareil} onChange={(e) => maj({ appareil: e.target.value as Chantier["appareil"] })}>
+                  {options(APPAREILS).map((o) => <option key={o.valeur} value={o.valeur}>{o.label}</option>)}
+                </select>
+              </label>
+              <label className="etiquette">Modèle et n° de série
+                <input className="champ font-normal" value={c.appareil_modele} maxLength={200} onChange={(e) => maj({ appareil_modele: e.target.value })} />
+              </label>
+              <label className="etiquette">Dernier étalonnage
+                <input type="date" className="champ font-normal" value={c.etalonnage_le ?? ""} onChange={(e) => maj({ etalonnage_le: e.target.value || null })} />
+              </label>
+            </div>
+          </section>
+
+          <section aria-labelledby="h-ctl" className="carte flex flex-col gap-5 p-5 md:p-6">
+            <h2 id="h-ctl" className="text-lg font-semibold">2. Contrôle et acceptabilité</h2>
+            <div className="pas-impression grid gap-3 sm:grid-cols-2">
+              <label className="etiquette">Type de contrôle
+                <select className="champ font-normal" value={c.type_controle} onChange={(e) => maj({ type_controle: e.target.value as Chantier["type_controle"] })}>
+                  {options(TYPES_CONTROLE).map((o) => <option key={o.valeur} value={o.valeur}>{o.label}</option>)}
+                </select>
+              </label>
+              <label className="etiquette">Réalisé par
+                <select className="champ font-normal" value={c.controle_par} onChange={(e) => maj({ controle_par: e.target.value as Chantier["controle_par"] })}>
+                  {options(CONTROLE_PAR).map((o) => <option key={o.valeur} value={o.valeur}>{o.label}</option>)}
+                </select>
+              </label>
+            </div>
+            <div className="pas-impression">
+              <Choix
+                legende="Type de coordonnées"
+                options={(Object.keys(SYSTEMES) as Systeme[]).map((s) => ({ valeur: s, label: SYSTEMES[s].label }))}
+                valeur={c.systeme_coord}
+                onChange={(systeme_coord) => maj({ systeme_coord })}
+                aide={`${SYSTEMES[c.systeme_coord].aide} S'applique aux nouvelles saisies.`}
+              />
+            </div>
+
+            <div className="overflow-x-auto rounded-md border border-bord">
+              <table className="w-full min-w-[460px] text-sm">
+                <caption className="px-3 py-2.5 text-left text-[13px] text-encre-2">Écarts levé / contrôle, en cm</caption>
+                <thead>
+                  <tr className="bg-surface-2 text-right text-encre-2">
+                    <th className="px-3 py-2 text-left font-semibold">Point</th>
+                    <th className="px-3 py-2 font-semibold">d{a}</th>
+                    <th className="px-3 py-2 font-semibold">d{b}</th>
+                    <th className="px-3 py-2 font-semibold">d{z}</th>
+                    <th className="px-3 py-2 font-semibold">{c.systeme_coord === "XYZ" ? "Écart 3D" : "Écart plani"}</th>
+                    <th className="px-3 py-2 font-semibold">Tolérance</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {r.sansControle.length > 0 && <p className="text-[13px] text-encre-2">Points levés sans contrôle : {r.sansControle.join(", ")}</p>}
-          {r.systemesDifferents.length > 0 && (
-            <Encart ton="alerte" titre="Levé et contrôle dans deux systèmes différents">
-              Points {r.systemesDifferents.join(", ")} : la conversion entre E, N, H et X, Y, Z n&apos;est pas encore gérée. Ils sont exclus du calcul.
-            </Encart>
-          )}
+                </thead>
+                <tbody className="font-mono">
+                  {r.ecarts.length === 0 && (
+                    <tr><td colSpan={6} className="px-3 py-4 text-center font-sans text-encre-2">Aucun point contrôlé. Saisis ou importe des points de contrôle portant les mêmes codes que les points levés.</td></tr>
+                  )}
+                  {r.ecarts.map((e) => (
+                    <tr key={e.code} className="border-t border-bord text-right">
+                      <td className="px-3 py-2 text-left">{e.code}</td>
+                      <td className="px-3 py-2">{signe(e.da)}</td>
+                      <td className="px-3 py-2">{signe(e.db)}</td>
+                      <td className="px-3 py-2">{signe(e.dc)}</td>
+                      <td className="px-3 py-2 font-semibold">{formatCm(e.ecart)}</td>
+                      <td className={`px-3 py-2 font-semibold ${e.dansTolerance ? "text-ok" : "text-erreur"}`}>{e.dansTolerance ? "OK" : "Hors tol."}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {r.sansControle.length > 0 && <p className="text-[13px] text-encre-2">Points levés sans contrôle : {r.sansControle.join(", ")}</p>}
+            {r.systemesDifferents.length > 0 && (
+              <Encart ton="alerte" titre="Levé et contrôle dans deux systèmes différents">
+                Points {r.systemesDifferents.join(", ")} : la conversion entre E, N, H et X, Y, Z n&apos;est pas encore gérée. Ils sont exclus du calcul.
+              </Encart>
+            )}
 
-          <div className="grid grid-cols-3 gap-3">
-            <Mesure titre={c.systeme_coord === "XYZ" ? "EMQ 3D" : "EMQ planimétrique"} valeur={r.emq} />
-            <Mesure titre="Écart maximal" valeur={r.ecartMax} />
-            <Mesure titre={`Tolérance (${formatCm(c.coef_tolerance)} × borne)`} valeur={r.tolerance} />
-          </div>
+            <div className="grid grid-cols-3 gap-3">
+              <Mesure titre={c.systeme_coord === "XYZ" ? "EMQ 3D" : "EMQ planimétrique"} valeur={r.emq} />
+              <Mesure titre="Écart maximal" valeur={r.ecartMax} />
+              <Mesure titre={`Tolérance (${formatCm(c.coef_tolerance)} × borne)`} valeur={r.tolerance} />
+            </div>
 
-          {r.verdict === "conforme" && <Encart ton="ok" titre="Travaux acceptables">EMQ et écarts dans la borne de {r.borne != null ? `${formatCm(r.borne)} cm` : "—"}.</Encart>}
-          {r.verdict === "non_conforme" && <Encart ton="erreur" titre="Travaux non acceptables">{r.motifs.join(" ")} Reprise ou réobservation à prévoir.</Encart>}
-          {r.verdict === "incomplet" && <Encart ton="info" titre="Contrôle incomplet">{r.motifs.join(" ")}</Encart>}
-          <p className="text-[13px] text-encre-2">
-            Règle : EMQ ≤ borne (classe ou tolérance du cahier des charges), et aucun écart au-delà de {formatCm(c.coef_tolerance)} × la borne. Le rapport 2,5 vient de l&apos;instruction ANCFCC (art. 13).
-          </p>
+            {r.verdict === "conforme" && <Encart ton="ok" titre="Travaux acceptables">EMQ et écarts dans la borne de {r.borne != null ? `${formatCm(r.borne)} cm` : "—"}.</Encart>}
+            {r.verdict === "non_conforme" && <Encart ton="erreur" titre="Travaux non acceptables">{r.motifs.join(" ")} Reprise ou réobservation à prévoir.</Encart>}
+            {r.verdict === "incomplet" && <Encart ton="info" titre="Contrôle incomplet">{r.motifs.join(" ")}</Encart>}
+            <p className="text-[13px] text-encre-2">
+              Règle : EMQ ≤ borne (classe ou tolérance du cahier des charges), et aucun écart au-delà de {formatCm(c.coef_tolerance)} × la borne. Le rapport 2,5 vient de l&apos;instruction ANCFCC (art. 13).
+            </p>
+          </section>
+        </div>
+
+        <GestionPoints chantier={c} points={points} />
+
+        <section aria-labelledby="h-val" className="carte flex flex-wrap items-center justify-between gap-4 p-5 md:p-6">
+          <div>
+            <h2 id="h-val" className="text-lg font-semibold">4. Validation</h2>
+            <p className="mt-1 text-sm text-encre-2">
+              {c.verdict
+                ? `Déclaré ${c.verdict === "conforme" ? "conforme" : "non conforme"} le ${c.valide_le ? new Date(c.valide_le).toLocaleString("fr-FR") : "—"}.`
+                : peutValider
+                  ? "Le verdict calculé est une proposition. La validation engage le contrôleur."
+                  : "Seuls le chef de mission et le contrôleur peuvent valider."}
+            </p>
+          </div>
+          <div className="pas-impression flex flex-wrap gap-3">
+            <button type="button" className="bouton-secondaire" onClick={exporterCsv} disabled={!r.ecarts.length}>Exporter les écarts (CSV)</button>
+            <button type="button" className="bouton-secondaire" onClick={() => window.print()}>Imprimer le PV</button>
+            {peutValider && c.verdict && <button type="button" className="bouton-secondaire" onClick={() => valider(null)}>Annuler la validation</button>}
+            {peutValider && !c.verdict && (
+              <>
+                <button type="button" className="bouton-secondaire" onClick={() => valider("non_conforme")} disabled={!r.ecarts.length}>Déclarer non conforme</button>
+                <button type="button" className="bouton-principal" onClick={() => valider("conforme")} disabled={r.verdict !== "conforme"}>Valider conforme</button>
+              </>
+            )}
+          </div>
         </section>
-      </div>
-
-      <GestionPoints chantier={c} points={points} />
-
-      <section aria-labelledby="h-val" className="carte flex flex-wrap items-center justify-between gap-4 p-5 md:p-6">
-        <div>
-          <h2 id="h-val" className="text-lg font-semibold">4. Validation</h2>
-          <p className="mt-1 text-sm text-encre-2">
-            {c.verdict
-              ? `Déclaré ${c.verdict === "conforme" ? "conforme" : "non conforme"} le ${c.valide_le ? new Date(c.valide_le).toLocaleString("fr-FR") : "—"}.`
-              : peutValider
-                ? "Le verdict calculé est une proposition. La validation engage le contrôleur."
-                : "Seuls le chef de mission et le contrôleur peuvent valider."}
-          </p>
-        </div>
-        <div className="pas-impression flex flex-wrap gap-3">
-          <button type="button" className="bouton-secondaire" onClick={exporterCsv} disabled={!r.ecarts.length}>Exporter les écarts (CSV)</button>
-          <button type="button" className="bouton-secondaire" onClick={() => window.print()}>Imprimer le PV</button>
-          {peutValider && c.verdict && <button type="button" className="bouton-secondaire" onClick={() => valider(null)}>Annuler la validation</button>}
-          {peutValider && !c.verdict && (
-            <>
-              <button type="button" className="bouton-secondaire" onClick={() => valider("non_conforme")} disabled={!r.ecarts.length}>Déclarer non conforme</button>
-              <button type="button" className="bouton-principal" onClick={() => valider("conforme")} disabled={r.verdict !== "conforme"}>Valider conforme</button>
-            </>
-          )}
-        </div>
-      </section>
+        </>
+      )}
+      {onglet === "planning" && <Planning chantier={c} />}
+      {onglet === "raci" && <MatriceRaci chantier={c} />}
+      {onglet === "indicateurs" && <Indicateurs chantier={c} points={points} />}
 
       <div className="pas-impression flex justify-end">
         <button type="button" onClick={supprimer} className="bouton text-erreur">Supprimer le chantier</button>
