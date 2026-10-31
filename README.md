@@ -1,36 +1,31 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GeoTopo
 
-## Getting Started
+Suivi des travaux de topographie, géodésie et géomatique, du terrain à l'acceptation : nature des travaux, méthode, appareil, classe de précision exigée par le cahier des charges, contrôle et verdict d'acceptabilité. PWA utilisable hors ligne, synchronisée avec Supabase.
 
-First, run the development server:
+## Lancer en local
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Sans `.env.local`, l'application tourne en **mode local** : tout fonctionne, sans comptes ni synchronisation.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Activer la synchronisation
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Créer un projet Supabase, puis exécuter `supabase/migrations/0001_schema.sql` dans le SQL Editor
+2. Copier `.env.example` en `.env.local` et y mettre l'URL et la clé publique (Publishable key)
+3. Dans Authentication → URL Configuration, mettre l'adresse du site comme Site URL
 
-## Learn More
+## Tests
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm test            # calculs et synchronisation (Vitest)
+npm run test:sql    # migrations et règles d'accès sur une base PostgreSQL jetable
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Mise en ligne
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+`npm run build` produit le dossier `out/`, à héberger sur n'importe quel hébergeur de fichiers statiques (Vercel, Cloudflare Pages). Les deux variables `NEXT_PUBLIC_…` se règlent chez l'hébergeur.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Documentation : `docs/CADRAGE.md`, `docs/decisions/`, `docs/REPRISE-CLAUDE.md`.

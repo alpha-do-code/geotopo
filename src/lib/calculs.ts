@@ -72,6 +72,7 @@ export function evaluerControle(
     ecarts.push({ ...e, dansTolerance: tolerance == null ? true : e.ecart <= tolerance });
   }
 
+  ecarts.sort((x, y) => x.code.localeCompare(y.code, "fr", { numeric: true }));
   const motifs: string[] = [];
   if (ecarts.length === 0) {
     motifs.push("Aucun point contrôlé.");
