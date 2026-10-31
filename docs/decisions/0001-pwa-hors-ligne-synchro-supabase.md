@@ -1,6 +1,6 @@
 # ADR 0001 : PWA hors ligne d'abord, synchronisée avec Supabase
 
-*Date : 31/10/2026. Statut : accepté.*
+*Date : 31/10/2026. Statut : accepté, en partie remplacé par l'ADR 0002 (Supabase cède la place à une API NestJS). Le principe hors ligne d'abord, la synchronisation et ses règles restent valables.*
 
 ## Contexte
 

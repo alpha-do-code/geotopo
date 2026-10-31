@@ -1,6 +1,6 @@
 # GeoTopo, cadrage v1
 
-*Rédigé le 31/10/2026. Statut : maquette en revue, aucun code applicatif.*
+*Rédigé le 31/10/2026, mis à jour le 31/10/2026 (module de gestion, passage à NestJS). Statut : v1 codée et testée en local, pas encore en ligne.*
 
 ## Le besoin
 
@@ -36,15 +36,24 @@ Sources :
 - [Instruction ANCFCC 2017](https://kitigt.onigtevents.ma/assets/files/3-DOC-TECHNIQUE/ancfcc/2017-livrebleu.pdf)
 - [Arrêté français du 16/09/2003, pour comparaison](https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000000794936)
 
+## Module de gestion (ajouté à la v1 le 31/10/2026)
+
+| Brique | Ce qu'elle fait dans GeoTopo |
+|---|---|
+| **Planning (Gantt)** | Tâches avec début, fin, avancement, jalons et dépendances (« après »). Modèle de tâches par nature de travaux. Le jalon « Contrôle de précision » passe à 100 % quand le contrôle est validé |
+| **Matrice RACI** | Tâches × acteurs, une lettre par case. Les acteurs sont les membres de l'équipe, plus des externes sans compte (maître d'ouvrage, cadastre, géomètre expert). L'application signale une tâche sans A, avec plusieurs A ou sans R |
+| **GAR (gestion axée sur les résultats)** | Au niveau du chantier : objectifs, puis indicateurs avec référence, cible, réalisé et source de vérification. Cinq indicateurs se calculent seuls : points dans la tolérance, EMQ face à la borne de la classe, avancement pondéré, échéances tenues, retard en jours |
+| **Évaluation** | Tableau de bord : avancement réel face au prévu, retard et atteinte moyenne des indicateurs, par chantier |
+
 ## Périmètre v1
 
-**Dedans :** chantiers, exigences du cahier des charges, saisie des écarts de contrôle (import CSV), calcul EMQ et verdict, PV de contrôle en PDF, référentiels éditables, saisie terrain hors ligne sur téléphone, comptes opérateur / contrôleur / chef de mission.
+**Dedans :** chantiers, exigences du cahier des charges, saisie des écarts de contrôle (import CSV), calcul EMQ et verdict, PV de contrôle imprimable, référentiels, saisie terrain hors ligne sur téléphone, comptes opérateur / contrôleur / chef de mission, planning Gantt, RACI, indicateurs de résultats.
 
-**Dehors en v1 :** calculs de compensation, traitement GNSS (post-traitement), nuages de points, orthophotos, cartographie SIG complète, connexion directe aux appareils, facturation.
+**Dehors en v1 :** calculs de compensation, traitement GNSS (post-traitement), nuages de points, orthophotos, cartographie SIG complète, connexion directe aux appareils, facturation. Côté gestion : ressources et charge de travail, coûts et budget, chemin critique calculé, export MS Project, notifications, cadre logique complet (impact, effets, hypothèses), temps réel.
 
-## Pile envisagée (à trancher après validation de la maquette)
+## Pile retenue
 
-Projet avec comptes et équipe : Next.js + Supabase + Vercel (pile par défaut), en PWA pour le hors-ligne terrain. Point de vigilance : la synchronisation hors ligne est la partie difficile, à prototyper en premier.
+Monorepo : Next.js en export statique (PWA hors ligne) + API NestJS + PostgreSQL (Prisma), authentification maison. Voir les ADR 0001 (hors ligne et synchronisation) et 0002 (NestJS à la place de Supabase).
 
 ## Questions ouvertes
 
@@ -52,3 +61,5 @@ Projet avec comptes et équipe : Next.js + Supabase + Vercel (pile par défaut),
 2. Les tables de tolérances ANCFCC et le CPT pour GNSS, drone, scanner
 3. Qui sont les utilisateurs : ton bureau d'études, un client, un ami topographe ? Qui paie ?
 4. Format des fichiers que sortent les appareils (CSV, GSI, JobXML, RINEX) pour l'import
+5. Les modèles de tâches par nature (étapes et durées) sont une proposition : à corriger avec un topographe en exercice
+6. Avant la mise en ligne : fournisseur d'e-mails, VPS, sauvegarde automatique de la base
