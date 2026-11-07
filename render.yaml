@@ -32,9 +32,10 @@ services:
       # Même valeur que le secret RELAIS_SECRET du Worker (wrangler secret put RELAIS_SECRET)
       - key: RELAIS_SECRET
         sync: false
-      # ex. smtps://moncompte%40gmail.com:motdepasseapplication@smtp.gmail.com:465
+      # Brevo port 2525 (Render gratuit bloque 25, 465 et 587), voir docs/MISE-EN-LIGNE.md
+      # ex. smtp://identifiant%40smtp-brevo.com:cle@smtp-relay.brevo.com:2525?requireTLS=true
       - key: SMTP_URL
         sync: false
-      # ex. GeoTopo <moncompte@gmail.com>
+      # ex. GeoTopo <expediteur-verifie@gmail.com>
       - key: EMAIL_EXPEDITEUR
         sync: false

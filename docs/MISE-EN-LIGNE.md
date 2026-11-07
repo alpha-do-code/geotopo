@@ -49,14 +49,18 @@ qui ne vient pas du Worker (secret `RELAIS_SECRET`), sauf la sonde `/api/ping`.
 
 ## E-mails (SMTP)
 
-Le plus simple sans nom de domaine : un compte Gmail dédié avec la validation en deux étapes et un **mot de passe d'application**.
+⚠️ **Le plan gratuit de Render bloque les ports SMTP 25, 465 et 587** (depuis septembre 2025). Gmail
+n'écoute que sur 465 et 587 : il ne marche pas ici. On passe par **Brevo sur le port 2525**, en TLS
+obligatoire (`requireTLS=true`).
 
 ```
-SMTP_URL=smtps://geotopo.app%40gmail.com:motdepasseapplication@smtp.gmail.com:465
-EMAIL_EXPEDITEUR=GeoTopo <geotopo.app@gmail.com>
+SMTP_URL=smtp://IDENTIFIANT%40smtp-brevo.com:CLE_SMTP@smtp-relay.brevo.com:2525?requireTLS=true
+EMAIL_EXPEDITEUR=GeoTopo <adresse-verifiee-dans-brevo@gmail.com>
 ```
 
-Brevo ou Resend marchent avec la même variable (`smtps://…`) ; ils demandent un domaine vérifié pour bien arriver en boîte de réception.
+L'identifiant et la clé SMTP (`xsmtpsib-…`, pas la clé API) se trouvent dans Brevo, menu SMTP & API.
+L'expéditeur doit être vérifié dans Brevo (Expéditeurs). Sans domaine authentifié, une partie des
+e-mails peut arriver en spam : prévenir les collègues de regarder dans les spams.
 
 ## Redéployer
 
