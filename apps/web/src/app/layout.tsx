@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
-import { Coquille } from "@/components/coquille";
 import { InstallationProvider } from "@/components/installation";
+import { Portail } from "@/components/portail";
 import { EnregistrerServiceWorker } from "@/components/service-worker";
 import { SessionProvider } from "@/components/session";
 import "./globals.css";
@@ -31,7 +31,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-dvh font-sans" suppressHydrationWarning>
         <InstallationProvider>
           <SessionProvider>
-            <Coquille>{children}</Coquille>
+            <Portail>{children}</Portail>
           </SessionProvider>
         </InstallationProvider>
         <EnregistrerServiceWorker />

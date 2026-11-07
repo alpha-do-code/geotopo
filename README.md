@@ -24,7 +24,7 @@ npm run build -w @geotopo/metier
 npm run dev                                                  # API sur :3000, web sur :3001
 ```
 
-Sans compte, l'application tourne en **mode local** : tout fonctionne sur l'appareil, sans partage. En développement, les e-mails (confirmation, mot de passe oublié) s'affichent dans le terminal de l'API.
+Il faut un compte pour entrer dans l'application : au premier lancement, elle n'affiche que la connexion (ou la création de compte), puis demande de rejoindre ou de créer une équipe. Une fois connecté, la session est gardée sur l'appareil et l'application marche hors ligne. En développement, les e-mails (confirmation, mot de passe oublié) s'affichent dans le terminal de l'API.
 
 ## Tests
 
