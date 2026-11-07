@@ -20,11 +20,18 @@ export class ErreurApi extends Error {
 // Le jeton d'accès (15 min) ne vit qu'en mémoire ; le cookie httpOnly sert à en obtenir un nouveau
 let jetonAcces: string | null = null;
 
-async function brut<T>(chemin: string, init: RequestInit = {}): Promise<T> {
+// Sur un réseau mobile faible, une requête peut rester pendante sans jamais échouer : passé ce délai,
+// on la traite comme « pas de réseau », et l'application continue avec ce qu'elle a sur l'appareil.
+const DELAI_MS = 20_000;
+
+async function brut<T>(chemin: string, init: RequestInit = {}, delai = DELAI_MS): Promise<T> {
   let res: Response;
+  const abandon = new AbortController();
+  const minuteur = setTimeout(() => abandon.abort(), delai);
   try {
     res = await fetch(BASE + chemin, {
       ...init,
+      signal: abandon.signal,
       credentials: "include",
       headers: {
         ...(init.body ? { "content-type": "application/json" } : {}),
@@ -33,6 +40,8 @@ async function brut<T>(chemin: string, init: RequestInit = {}): Promise<T> {
     });
   } catch {
     throw new ErreurApi(0, "Pas de connexion. Réessaie une fois en ligne.");
+  } finally {
+    clearTimeout(minuteur);
   }
   if (res.status === 204) return undefined as T;
   const corps = await res.json().catch(() => ({}));
@@ -49,10 +58,11 @@ async function brut<T>(chemin: string, init: RequestInit = {}): Promise<T> {
 let renouvellement: Promise<Utilisateur | null> | null = null;
 
 // Renvoie l'utilisateur si la session est valide, null si elle a expiré. Lève ErreurApi(0) hors ligne.
-export function renouveler(): Promise<Utilisateur | null> {
+// delai : plus court au démarrage, pour ne pas laisser l'écran de chargement attendre le réseau
+export function renouveler(delai = DELAI_MS): Promise<Utilisateur | null> {
   renouvellement ??= (async () => {
     try {
-      const r = await brut<{ jetonAcces: string; utilisateur: Utilisateur }>("/auth/renouveler", { method: "POST" });
+      const r = await brut<{ jetonAcces: string; utilisateur: Utilisateur }>("/auth/renouveler", { method: "POST" }, delai);
       jetonAcces = r.jetonAcces;
       return r.utilisateur;
     } catch (e) {

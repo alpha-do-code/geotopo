@@ -54,6 +54,15 @@
         "cd apps/web && npx wrangler dev --port 8787 --var API_URL:http://localhost:3100 --var RELAIS_SECRET:secret-local-de-test-secret-local-de-test"
       ],
       "port": 8787
+    },
+    {
+      "name": "geotopo-worker-panne",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd apps/web && npx wrangler dev --port 8788 --var API_URL:http://127.0.0.1:3999 --var RELAIS_SECRET:secret-local-de-test-secret-local-de-test"
+      ],
+      "port": 8788
     }
   ]
 }

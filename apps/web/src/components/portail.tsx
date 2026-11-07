@@ -68,7 +68,10 @@ export function Portail({ children }: { children: ReactNode }) {
 }
 
 function Contenu({ children }: { children: ReactNode }) {
-  const { pret, user, org, deconnexion } = useSession();
+  const { pret, user, org, deconnexion, erreurDemarrage } = useSession();
+  useEffect(() => {
+    if (erreurDemarrage) console.error("Démarrage GeoTopo :", erreurDemarrage);
+  }, [erreurDemarrage]);
   const chemin = usePathname();
 
   // Le guide d'installation se partage avant d'avoir un compte
@@ -85,17 +88,31 @@ function Contenu({ children }: { children: ReactNode }) {
     );
   }
 
+  // Cet écran est écrit dans la page statique : s'il reste affiché, c'est que le démarrage traîne ou que
+  // le JavaScript ne s'est pas lancé. Le bloc d'aide apparaît alors par le seul CSS, sans React.
   if (!pret)
     return (
-      <div className="flex min-h-dvh items-center justify-center" aria-busy="true">
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-6 px-6" aria-busy="true">
         <span className="animate-pulse rounded-2xl bg-nav p-3"><Logo taille={48} /></span>
         <span className="sr-only">Chargement…</span>
+        <div className="apparition-retardee flex max-w-sm flex-col items-center gap-3 text-center text-sm">
+          <p className="text-encre-2">Le démarrage prend plus de temps que prévu.</p>
+          <div className="flex flex-wrap justify-center gap-2">
+            {/* Vrai lien, pas <Link> : il doit recharger la page même si React n'a pas démarré */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+            <a href="/" className="bouton-principal">Réessayer</a>
+            <a href="/reparer.html" className="bouton-secondaire">Réparer l&apos;application</a>
+          </div>
+          <p className="text-[13px] text-encre-2">« Réparer » recharge l&apos;application sans toucher à tes chantiers.</p>
+          <p id="gt-erreurs" className="text-[12px] break-all text-erreur"></p>
+        </div>
       </div>
     );
 
   if (!user)
     return (
       <Ecran>
+        {erreurDemarrage && <Encart ton="alerte" titre={`Problème au démarrage : ${erreurDemarrage}`} />}
         <Connexion />
         <Link href="/installer/" className="text-center text-sm text-accent underline">Installer l&apos;application sur cet appareil</Link>
       </Ecran>

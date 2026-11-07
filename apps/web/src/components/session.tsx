@@ -12,6 +12,8 @@ type EtatSync = { enCours: boolean; derniere: string | null; erreur: string | nu
 
 type Session = {
   pret: boolean;
+  // Erreur survenue au démarrage, affichée pour pouvoir la signaler
+  erreurDemarrage: string | null;
   user: Utilisateur | null;
   orgs: Organisation[];
   org: Organisation | null;
@@ -40,6 +42,8 @@ export function useSession() {
   return s;
 }
 
+const texteErreur = (e: unknown) => (e instanceof Error ? `${e.name} : ${e.message}` : String(e));
+
 const cleOrgs = (uid: string) => `orgs:${uid}`;
 const lireJson = async <T,>(cle: string): Promise<T | null> => {
   const v = await lireMeta(cle);
@@ -48,6 +52,7 @@ const lireJson = async <T,>(cle: string): Promise<T | null> => {
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [pret, setPret] = useState(false);
+  const [erreurDemarrage, setErreurDemarrage] = useState<string | null>(null);
   const [user, setUser] = useState<Utilisateur | null>(null);
   const [orgs, setOrgs] = useState<Organisation[]>([]);
   const [orgActiveId, setOrgActiveId] = useState<string | null>(null);
@@ -95,23 +100,35 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     [rechargerOrgs, choisirOrg],
   );
 
-  // Démarrage : session sur le serveur si le réseau le permet, sinon celle gardée sur l'appareil
+  // Démarrage : session sur le serveur si le réseau le permet, sinon celle gardée sur l'appareil.
+  // Quoi qu'il arrive (réseau pendant, base locale illisible, erreur imprévue), l'écran de chargement
+  // finit par laisser la place : l'erreur est gardée pour être affichée et comprise.
   useEffect(() => {
     let annule = false;
     (async () => {
-      setEnLigne(navigator.onLine);
-      const garde = await lireJson<Utilisateur>("utilisateur");
-      let u: Utilisateur | null = garde;
       try {
-        u = await renouveler();
-        await ecrireMeta("utilisateur", u ? JSON.stringify(u) : null);
-      } catch {
-        // Hors ligne : on garde l'utilisateur connu de l'appareil, la synchro reprendra au retour du réseau
+        setEnLigne(navigator.onLine);
+        let garde: Utilisateur | null = null;
+        try {
+          garde = await lireJson<Utilisateur>("utilisateur");
+        } catch (e) {
+          setErreurDemarrage(`Base locale : ${texteErreur(e)}`);
+        }
+        let u: Utilisateur | null = garde;
+        try {
+          u = await renouveler(8_000);
+          await ecrireMeta("utilisateur", u ? JSON.stringify(u) : null).catch(() => undefined);
+        } catch {
+          // Hors ligne ou réseau trop lent : on garde l'utilisateur connu de l'appareil, la synchro reprendra
+        }
+        if (annule) return;
+        if (u?.doitChangerMotDePasse) setUser(u);
+        else if (u) await ouvrir(u);
+      } catch (e) {
+        if (!annule) setErreurDemarrage(texteErreur(e));
+      } finally {
+        if (!annule) setPret(true);
       }
-      if (annule) return;
-      if (u?.doitChangerMotDePasse) setUser(u);
-      else if (u) await ouvrir(u);
-      if (!annule) setPret(true);
     })();
     const enLigneOn = () => setEnLigne(true);
     const enLigneOff = () => setEnLigne(false);
@@ -206,6 +223,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const valeur = useMemo<Session>(
     () => ({
       pret,
+      erreurDemarrage,
       user,
       orgs,
       org,
@@ -224,7 +242,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       mdpProvisoire,
       deconnexion,
     }),
-    [pret, user, orgs, org, orgId, enLigne, enAttente, sync, synchroniserMaintenant, choisirOrg, rechargerOrgs, connexion, inscription, changerMotDePasse, mdpProvisoire, deconnexion],
+    [pret, erreurDemarrage, user, orgs, org, orgId, enLigne, enAttente, sync, synchroniserMaintenant, choisirOrg, rechargerOrgs, connexion, inscription, changerMotDePasse, mdpProvisoire, deconnexion],
   );
 
   return <Ctx.Provider value={valeur}>{children}</Ctx.Provider>;

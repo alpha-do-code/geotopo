@@ -108,3 +108,16 @@ body {
     color: #000;
   }
 }
+
+/* Aide de l'écran de chargement : n'apparaît que si le démarrage traîne (CSS seul, sans JavaScript) */
+@keyframes gt-apparaitre {
+  to {
+    visibility: visible;
+    opacity: 1;
+  }
+}
+.apparition-retardee {
+  visibility: hidden;
+  opacity: 0;
+  animation: gt-apparaitre 0.3s ease 8s forwards;
+}

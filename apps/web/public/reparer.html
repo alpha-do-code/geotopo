@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Réparer GeoTopo</title>
+<style>
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #0f1513; color: #e8ece9; font: 16px/1.5 system-ui, sans-serif; }
+  main { max-width: 22rem; padding: 1.5rem; text-align: center; }
+  a { color: #7cc4a8; }
+</style>
+</head>
+<body>
+<main>
+  <h1 style="font-size:1.25rem">Réparation de GeoTopo…</h1>
+  <p id="etat">On vide la copie de l'application gardée sur cet appareil. Tes chantiers et ta session ne sont pas touchés.</p>
+  <p><a href="/">Revenir à l'application</a></p>
+</main>
+<script>
+  // Page autonome, sans React : elle doit marcher même quand l'application ne démarre plus.
+  // On retire le service worker et ses caches (fichiers de l'application), jamais la base IndexedDB.
+  (async function () {
+    var etat = document.getElementById("etat");
+    try {
+      if ("serviceWorker" in navigator) {
+        var regs = await navigator.serviceWorker.getRegistrations();
+        for (var i = 0; i < regs.length; i++) await regs[i].unregister();
+      }
+      if (window.caches) {
+        var cles = await caches.keys();
+        for (var j = 0; j < cles.length; j++) await caches.delete(cles[j]);
+      }
+      etat.textContent = "C'est fait. Retour à l'application…";
+      setTimeout(function () { location.replace("/"); }, 1200);
+    } catch (e) {
+      etat.textContent = "La réparation a échoué : " + e + ". Ferme l'application et rouvre-la.";
+    }
+  })();
+</script>
+</body>
+</html>

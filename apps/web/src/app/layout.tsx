@@ -26,6 +26,15 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="fr" className={`${plexSans.variable} ${plexMono.variable} antialiased`}>
+      <head>
+        {/* Avant tout le reste : les erreurs JavaScript s'affichent sur l'écran de chargement,
+            pour qu'un démarrage raté puisse être signalé avec sa cause (capture d'écran) */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.addEventListener("error",function(e){var p=document.getElementById("gt-erreurs");if(p)p.textContent+=(e.message||"Erreur")+" ("+(e.filename||"").split("/").pop()+") ";});window.addEventListener("unhandledrejection",function(e){var p=document.getElementById("gt-erreurs");if(p)p.textContent+="Promesse : "+(e.reason&&e.reason.message||e.reason)+" ";});`,
+          }}
+        />
+      </head>
       {/* Des extensions (Monica, Grammarly…) ajoutent des attributs au <body> avant React :
           on ignore ces écarts sur ce seul élément, pas sur ses enfants */}
       <body className="min-h-dvh font-sans" suppressHydrationWarning>
