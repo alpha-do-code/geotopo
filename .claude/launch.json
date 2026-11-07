@@ -4,20 +4,56 @@
     {
       "name": "geotopo-api",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "-w", "@geotopo/api"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "-w",
+        "@geotopo/api"
+      ],
       "port": 3000
     },
     {
       "name": "geotopo-web",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "-w", "@geotopo/web"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "-w",
+        "@geotopo/web"
+      ],
       "port": 3001
     },
     {
       "name": "geotopo-export",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "4310", "--bind", "127.0.0.1", "--directory", "apps/web/out"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4310",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "apps/web/out"
+      ],
       "port": 4310
+    },
+    {
+      "name": "geotopo-api-relais",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd apps/api && PORT=3100 ORIGINE_WEB=http://localhost:8787 RELAIS_SECRET=secret-local-de-test-secret-local-de-test node dist/main.js"
+      ],
+      "port": 3100
+    },
+    {
+      "name": "geotopo-worker",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd apps/web && npx wrangler dev --port 8787 --var API_URL:http://localhost:3100 --var RELAIS_SECRET:secret-local-de-test-secret-local-de-test"
+      ],
+      "port": 8787
     }
   ]
 }

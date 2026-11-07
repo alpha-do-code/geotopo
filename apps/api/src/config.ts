@@ -7,6 +7,10 @@ export type Config = {
   databaseUrl: string;
   jwtSecret: string;
   origineWeb: string;
+  // Secret partagé avec le Worker Cloudflare qui relaie /api : sans lui, la production refuse la requête
+  relaisSecret: string | null;
+  // Envoi des e-mails par SMTP (Gmail, Brevo, Resend…) : smtps://utilisateur:motdepasse@hote:465
+  smtp: { url: string; expediteur: string } | null;
 };
 
 export function lireConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -26,8 +30,22 @@ export function lireConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const port = Number(env.PORT ?? 3000);
   if (!Number.isInteger(port) || port <= 0) erreurs.push("PORT invalide");
 
+  const relaisSecret = env.RELAIS_SECRET || null;
+  if (production && (relaisSecret ?? "").length < 32) erreurs.push("RELAIS_SECRET doit faire au moins 32 caractères en production");
+
+  const smtpUrl = env.SMTP_URL ?? "";
+  const expediteur = env.EMAIL_EXPEDITEUR ?? "";
+  let smtp: Config["smtp"] = null;
+  if (smtpUrl || expediteur) {
+    if (!/^smtps?:\/\/.+@.+/.test(smtpUrl)) erreurs.push("SMTP_URL doit être de la forme smtps://utilisateur:motdepasse@hote:465");
+    if (!expediteur.includes("@")) erreurs.push("EMAIL_EXPEDITEUR doit contenir une adresse e-mail");
+    smtp = { url: smtpUrl, expediteur };
+  } else if (production) {
+    erreurs.push("SMTP_URL et EMAIL_EXPEDITEUR sont obligatoires en production (confirmation des comptes)");
+  }
+
   if (erreurs.length) throw new Error(`Configuration invalide : ${erreurs.join(" ; ")}`);
-  return { production, port, databaseUrl, jwtSecret, origineWeb };
+  return { production, port, databaseUrl, jwtSecret, origineWeb, relaisSecret, smtp };
 }
 
 export const CONFIG = Symbol("CONFIG");

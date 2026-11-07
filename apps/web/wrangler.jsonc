@@ -1,0 +1,18 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "geotopo",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-06",
+  "observability": { "enabled": true },
+  "assets": {
+    "directory": "./out",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"],
+    "not_found_handling": "404-page"
+  },
+  // Réveil de l'API Render (voir scheduled dans worker/index.ts)
+  "triggers": { "crons": ["*/10 * * * *"] },
+  // Adresse de l'API : à remplacer par celle que Render donne au service geotopo-api
+  "vars": { "API_URL": "https://geotopo-api.onrender.com" }
+  // Secret : npx wrangler secret put RELAIS_SECRET (même valeur que sur Render)
+}

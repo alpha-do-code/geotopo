@@ -4,6 +4,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { BandeauInstallation } from "@/components/installation";
 import { Pastille } from "@/components/pastille";
 import { useSession } from "@/components/session";
 import { db, enregistrerChantier, nouveauChantier } from "@/lib/db";
@@ -53,6 +54,7 @@ export default function TableauDeBord() {
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 md:px-10 md:py-8">
+      <BandeauInstallation />
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold md:text-3xl">Chantiers</h1>

@@ -1,0 +1,40 @@
+# Blueprint Render : l'API GeoTopo (NestJS + Prisma). Le site est servi par le Worker Cloudflare,
+# qui relaie /api vers ce service : les visiteurs ne voient jamais l'adresse onrender.com.
+services:
+  - type: web
+    name: geotopo-api
+    runtime: node
+    plan: free
+    region: frankfurt
+    rootDir: .
+    buildCommand: >-
+      npm ci --include=dev &&
+      npm run build -w @geotopo/metier &&
+      npm run build -w @geotopo/api &&
+      cd apps/api && npx --no-install prisma migrate deploy
+    startCommand: cd apps/api && node dist/main.js
+    healthCheckPath: /api/ping
+    autoDeploy: true
+    branch: main
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: NODE_ENV
+        value: production
+      # Adresse du Worker, ex. https://geotopo.ailleur-pro.workers.dev
+      - key: ORIGINE_WEB
+        sync: false
+      # Base PostgreSQL (Neon recommandé : la base gratuite de Render expire au bout de 30 jours)
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      # Même valeur que le secret RELAIS_SECRET du Worker (wrangler secret put RELAIS_SECRET)
+      - key: RELAIS_SECRET
+        sync: false
+      # ex. smtps://moncompte%40gmail.com:motdepasseapplication@smtp.gmail.com:465
+      - key: SMTP_URL
+        sync: false
+      # ex. GeoTopo <moncompte@gmail.com>
+      - key: EMAIL_EXPEDITEUR
+        sync: false

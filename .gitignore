@@ -45,3 +45,7 @@ next-env.d.ts
 
 # client Prisma généré (prisma generate)
 apps/api/src/generated/
+
+# Cloudflare (wrangler)
+.wrangler/
+.dev.vars*

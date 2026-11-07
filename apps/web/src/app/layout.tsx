@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import { Coquille } from "@/components/coquille";
+import { InstallationProvider } from "@/components/installation";
 import { EnregistrerServiceWorker } from "@/components/service-worker";
 import { SessionProvider } from "@/components/session";
 import "./globals.css";
@@ -28,9 +29,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       {/* Des extensions (Monica, Grammarly…) ajoutent des attributs au <body> avant React :
           on ignore ces écarts sur ce seul élément, pas sur ses enfants */}
       <body className="min-h-dvh font-sans" suppressHydrationWarning>
-        <SessionProvider>
-          <Coquille>{children}</Coquille>
-        </SessionProvider>
+        <InstallationProvider>
+          <SessionProvider>
+            <Coquille>{children}</Coquille>
+          </SessionProvider>
+        </InstallationProvider>
         <EnregistrerServiceWorker />
       </body>
     </html>

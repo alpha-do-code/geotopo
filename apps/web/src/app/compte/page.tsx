@@ -27,6 +27,13 @@ export default function Compte() {
         </span>
         <span aria-hidden="true" className="text-accent">→</span>
       </Link>
+      <Link href="/installer/" className="carte flex items-center justify-between gap-3 p-4 hover:border-bord-fort">
+        <span>
+          <span className="block font-semibold">Installer l&apos;application</span>
+          <span className="block text-sm text-encre-2">Sur Android, iPhone ou ordinateur, pour l&apos;ouvrir sans réseau</span>
+        </span>
+        <span aria-hidden="true" className="text-accent">→</span>
+      </Link>
     </main>
   );
 }

@@ -17,7 +17,7 @@
     "turbo": "^2.11.10"
   },
   "allowScripts": {
-    "argon2@0.45.1": true,
+    "argon2@0.45.2": true,
     "@prisma/engines@7.10.1": true
   }
 }

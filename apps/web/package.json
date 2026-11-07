@@ -8,26 +8,30 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:sql": "./scripts/tester-sql.sh"
+    "test:sql": "./scripts/tester-sql.sh",
+    "deploy": "next build && wrangler deploy",
+    "preview:worker": "wrangler dev"
   },
   "dependencies": {
     "@geotopo/metier": "*",
     "dexie": "^4.4.7",
     "dexie-react-hooks": "^4.4.0",
-    "next": "16.4.3",
-    "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "next": "16.4.5",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261107.1",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.4.3",
+    "eslint-config-next": "16.4.5",
     "fake-indexeddb": "^6.2.7",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^5.0.5"
+    "vitest": "^5.0.5",
+    "wrangler": "^4.158.0"
   }
 }

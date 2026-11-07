@@ -4,6 +4,7 @@ import { ThrottlerStorage, ThrottlerStorageService } from "@nestjs/throttler";
 import request from "supertest";
 import { AppModule } from "../src/app.module.js";
 import { EXPEDITEUR, type Courriel, type Expediteur } from "../src/auth/expediteur.js";
+import { CONFIG, lireConfig, type Config } from "../src/config.js";
 import { configurer } from "../src/configurer.js";
 import { PrismaService } from "../src/prisma.service.js";
 
@@ -23,11 +24,14 @@ export class BoiteTest implements Expediteur {
   }
 }
 
-export async function creerApp() {
+// `config` permet de simuler un réglage de production (secret de relais…) sans changer d'environnement
+export async function creerApp(config: Partial<Config> = {}) {
   const boite = new BoiteTest();
   const module = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(EXPEDITEUR)
     .useValue(boite)
+    .overrideProvider(CONFIG)
+    .useValue({ ...lireConfig(), ...config })
     .compile();
   const app = module.createNestApplication<NestExpressApplication>({ bodyParser: false });
   configurer(app);

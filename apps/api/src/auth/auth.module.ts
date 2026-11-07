@@ -4,7 +4,7 @@ import { JwtModule } from "@nestjs/jwt";
 import { CONFIG, type Config } from "../config.js";
 import { AuthController } from "./auth.controller.js";
 import { AuthService } from "./auth.service.js";
-import { EXPEDITEUR, ExpediteurJournal } from "./expediteur.js";
+import { EXPEDITEUR, ExpediteurJournal, ExpediteurSmtp } from "./expediteur.js";
 import { GardeAuth } from "./garde-auth.js";
 
 @Module({
@@ -20,11 +20,8 @@ import { GardeAuth } from "./garde-auth.js";
     {
       provide: EXPEDITEUR,
       inject: [CONFIG],
-      useFactory: (config: Config) => {
-        // Tant qu'aucun fournisseur n'est branché, la production refuse de démarrer
-        if (config.production) throw new Error("Aucun fournisseur d'e-mails configuré : impossible de confirmer les comptes en production.");
-        return new ExpediteurJournal();
-      },
+      // La configuration impose le SMTP en production (voir config.ts)
+      useFactory: (config: Config) => (config.smtp ? new ExpediteurSmtp(config.smtp.url, config.smtp.expediteur) : new ExpediteurJournal()),
     },
     { provide: APP_GUARD, useClass: GardeAuth },
   ],

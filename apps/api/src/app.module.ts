@@ -1,11 +1,12 @@
 import { Global, Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
-import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
+import { ThrottlerModule } from "@nestjs/throttler";
 import { AuthModule } from "./auth/auth.module.js";
 import { CONFIG, lireConfig } from "./config.js";
 import { OrganisationsModule } from "./organisations/organisations.module.js";
 import { PrismaService } from "./prisma.service.js";
-import { SanteController } from "./sante.controller.js";
+import { LimiteParVisiteur } from "./relais.js";
+import { PingController, SanteController } from "./sante.controller.js";
 import { SyncModule } from "./sync/sync.module.js";
 
 @Global()
@@ -17,11 +18,11 @@ import { SyncModule } from "./sync/sync.module.js";
     OrganisationsModule,
     SyncModule,
   ],
-  controllers: [SanteController],
+  controllers: [SanteController, PingController],
   providers: [
     { provide: CONFIG, useFactory: () => lireConfig() },
     PrismaService,
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: LimiteParVisiteur },
   ],
   exports: [CONFIG, PrismaService],
 })

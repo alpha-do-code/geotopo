@@ -1,7 +1,7 @@
 // Service worker de GeoTopo : l'application doit s'ouvrir sans réseau sur le terrain.
 // Changer VERSION à chaque évolution de ce fichier.
-const VERSION = "geotopo-v5";
-const PAGES = ["/", "/planning/", "/raci/", "/indicateurs/", "/terrain/", "/chantier/", "/referentiels/", "/compte/"];
+const VERSION = "geotopo-v6";
+const PAGES = ["/", "/planning/", "/raci/", "/indicateurs/", "/terrain/", "/chantier/", "/referentiels/", "/compte/", "/installer/"];
 const FIXES = ["/manifest.webmanifest", "/icone.svg", "/icone-192.png", "/icone-512.png"];
 
 // À l'installation : les pages, puis tous les fichiers _next/static qu'elles référencent,
