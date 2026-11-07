@@ -37,8 +37,13 @@ export async function relayer(req: Request, env: Env): Promise<Response> {
 
 const worker = {
   async fetch(req: Request, env: Env): Promise<Response> {
-    const { pathname } = new URL(req.url);
-    if (pathname.startsWith("/api/")) return relayer(req, env);
+    const url = new URL(req.url);
+    // HTTPS partout : workers.dev répond aussi en http (wrangler dev en local reste en http)
+    if (url.protocol === "http:" && url.hostname !== "localhost" && url.hostname !== "127.0.0.1") {
+      url.protocol = "https:";
+      return Response.redirect(url.toString(), 301);
+    }
+    if (url.pathname.startsWith("/api/")) return relayer(req, env);
     return env.ASSETS.fetch(req);
   },
 

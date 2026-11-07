@@ -7,7 +7,8 @@
   "assets": {
     "directory": "./out",
     "binding": "ASSETS",
-    "run_worker_first": ["/api/*"],
+    // Tout passe par le Worker : redirection https, puis relais /api ou fichiers statiques
+    "run_worker_first": true,
     "not_found_handling": "404-page"
   },
   // Réveil de l'API Render (voir scheduled dans worker/index.ts)

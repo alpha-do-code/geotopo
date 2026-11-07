@@ -40,4 +40,12 @@ describe("Worker", () => {
     const rep = await worker.fetch(new Request("https://geotopo.exemple.workers.dev/api/ping"), env);
     expect(rep.status).toBe(503);
   });
+
+  it("redirige http vers https, sauf en local", async () => {
+    const rep = await worker.fetch(new Request("http://geotopo.exemple.workers.dev/installer/?a=1"), env);
+    expect(rep.status).toBe(301);
+    expect(rep.headers.get("location")).toBe("https://geotopo.exemple.workers.dev/installer/?a=1");
+    const local = await worker.fetch(new Request("http://localhost:8787/"), env);
+    expect(await local.text()).toBe("site");
+  });
 });

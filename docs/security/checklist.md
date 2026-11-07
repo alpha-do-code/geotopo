@@ -28,7 +28,7 @@ Légende : ✅ respecté, ⚠️ respecté avec une réserve, ❌ à faire, — 
 
 ## Ce qui est propre à cette mise en ligne
 
-- **Une seule origine** : le Worker `geotopo` sert le site et relaie `/api/*` vers Render. Il écrase les en-têtes `x-geotopo-relais` et `x-geotopo-ip` envoyés par le visiteur (test `worker/index.test.ts`).
+- **Une seule origine** : le Worker `geotopo` reçoit toutes les requêtes (`run_worker_first`), redirige http vers https, sert le site et relaie `/api/*` vers Render. Il écrase les en-têtes `x-geotopo-relais` et `x-geotopo-ip` envoyés par le visiteur (test `worker/index.test.ts`).
 - **Plan gratuit de Render** : l'API s'endort après 15 minutes. Le Worker la réveille toutes les 10 minutes par `/api/ping`, qui ne touche pas la base.
 
 ## Comment refaire l'audit
