@@ -36,6 +36,6 @@ npm run lint
 
 ## Mise en ligne
 
-Pas encore faite. Il faut un serveur permanent (VPS + Dokploy) avec un reverse proxy qui sert `apps/web/out` et `/api` sur la **même origine**. L'API refuse de démarrer en production dans trois cas : sans HTTPS, sans secret JWT solide, ou sans fournisseur d'e-mails.
+Le site et la PWA sont servis par un Worker Cloudflare qui relaie `/api` vers l'API sur Render (base PostgreSQL Neon) : une seule origine pour le navigateur. Procédure complète : `docs/MISE-EN-LIGNE.md`. L'API refuse de démarrer en production sans HTTPS, sans secret JWT solide, sans secret de relais ou sans SMTP. La page `/installer/` explique l'installation sur Android, iPhone et ordinateur : c'est le lien à partager.
 
-Documentation : `docs/CADRAGE.md`, `docs/decisions/`, `docs/REPRISE-CLAUDE.md`.
+Documentation : `docs/MISE-EN-LIGNE.md`, `docs/security/checklist.md`, `docs/CADRAGE.md`, `docs/decisions/`, `docs/REPRISE-CLAUDE.md`.
