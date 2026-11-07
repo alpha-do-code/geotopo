@@ -29,16 +29,16 @@ describe("socle", () => {
     await http().get("/api/ping").expect(200);
     await http().get("/api/sante").expect(403);
     await http().get("/api/sante").set("x-geotopo-relais", SECRET).expect(200);
-    await http().post("/api/auth/connexion").send({ email: "a@b.sn", motDePasse: "xxxxxxxxxx" }).expect(403);
-    await http().post("/api/auth/connexion").set("x-geotopo-relais", "mauvais").send({ email: "a@b.sn", motDePasse: "xxxxxxxxxx" }).expect(403);
-    await http().post("/api/auth/connexion").set("x-geotopo-relais", SECRET).send({ email: "a@b.sn", motDePasse: "xxxxxxxxxx" }).expect(401);
+    await http().post("/api/auth/connexion").send({ identifiant: "770000001", motDePasse: "xxxxxxxxxx" }).expect(403);
+    await http().post("/api/auth/connexion").set("x-geotopo-relais", "mauvais").send({ identifiant: "770000001", motDePasse: "xxxxxxxxxx" }).expect(403);
+    await http().post("/api/auth/connexion").set("x-geotopo-relais", SECRET).send({ identifiant: "770000001", motDePasse: "xxxxxxxxxx" }).expect(401);
     await app.close();
   });
 
   it("limite les essais de connexion par visiteur, pas pour tout le Worker", async () => {
     const { app } = await creerApp({ relaisSecret: SECRET });
     const essai = (ip: string) =>
-      request(app.getHttpServer()).post("/api/auth/connexion").set("x-geotopo-relais", SECRET).set("x-geotopo-ip", ip).send({ email: "a@b.sn", motDePasse: "xxxxxxxxxx" });
+      request(app.getHttpServer()).post("/api/auth/connexion").set("x-geotopo-relais", SECRET).set("x-geotopo-ip", ip).send({ identifiant: "770000001", motDePasse: "xxxxxxxxxx" });
     for (let i = 0; i < 5; i++) await essai("196.207.1.1").expect(401);
     await essai("196.207.1.1").expect(429);
     await essai("41.82.2.2").expect(401);
@@ -47,8 +47,8 @@ describe("socle", () => {
 
   it("explique une saisie invalide en français, sans le nom du code", async () => {
     const { app } = await creerApp();
-    const res = await request(app.getHttpServer()).post("/api/auth/inscription").send({ email: "pas-un-email", motDePasse: "court", nomAffiche: "" }).expect(400);
-    expect(res.body.message).toBe("Vérifie l'adresse e-mail, le mot de passe (10 caractères au moins), ton nom, tel que l'équipe le verra.");
+    const res = await request(app.getHttpServer()).post("/api/auth/inscription").send({ telephone: "123", motDePasse: "court", nomAffiche: "", email: "pas-un-email" }).expect(400);
+    expect(res.body.message).toBe("Vérifie le numéro de téléphone, le mot de passe (8 caractères au moins), ton nom, tel que l'équipe le verra, l'adresse e-mail.");
     expect(JSON.stringify(res.body)).not.toMatch(/must/);
     await app.close();
   });

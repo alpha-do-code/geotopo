@@ -1,5 +1,5 @@
 import { Transform } from "class-transformer";
-import { IsIn, IsString, IsUUID, Length, Matches } from "class-validator";
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsEmail, IsIn, IsString, IsUUID, Length, Matches, MaxLength } from "class-validator";
 
 const sansEspaces = ({ value }: { value: unknown }) => (typeof value === "string" ? value.trim() : value);
 
@@ -26,4 +26,11 @@ export class OrgParams {
 export class MembreParams {
   @IsUUID() org: string;
   @IsUUID() user: string;
+}
+
+export class InvitationsDto {
+  @Transform(({ value }) => (Array.isArray(value) ? [...new Set(value.map((v) => (typeof v === "string" ? v.trim().toLowerCase() : v)))] : value))
+  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(10, { message: "10 adresses au plus par envoi." })
+  @IsEmail({}, { each: true }) @MaxLength(254, { each: true })
+  emails: string[];
 }

@@ -3,8 +3,8 @@ import { Throttle } from "@nestjs/throttler";
 import type { Request, Response } from "express";
 import { CONFIG, type Config } from "../config.js";
 import { AuthService, type Connexion } from "./auth.service.js";
-import { ConnexionDto, InscriptionDto, JetonDto, OubliDto, ReinitialisationDto } from "./dto.js";
-import type { RequeteAuth } from "./garde-auth.js";
+import { ChangementMdpDto, ConnexionDto, InscriptionDto, JetonDto, OubliDto, ReinitialisationDto } from "./dto.js";
+import { PermisPendantProvisoire, type RequeteAuth } from "./garde-auth.js";
 import { Public } from "./public.decorator.js";
 
 const COOKIE = "geotopo_session";
@@ -35,22 +35,23 @@ export class AuthController {
     if (origine && origine !== this.config.origineWeb) throw new ForbiddenException("Origine refusée.");
   }
 
-  @Public() @Throttle(STRICT) @Post("inscription") @HttpCode(202)
-  async inscription(@Body() dto: InscriptionDto) {
-    await this.auth.inscrire(dto.email, dto.motDePasse, dto.nomAffiche);
-    return { message: "Si l'adresse est valide, un e-mail de confirmation vient d'être envoyé." };
+  // Le compte s'ouvre tout de suite : la réponse est une session, comme la connexion
+  @Public() @Throttle(STRICT) @Post("inscription") @HttpCode(201)
+  async inscription(@Body() dto: InscriptionDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    this.verifierOrigine(req);
+    return this.poserSession(res, await this.auth.inscrire(dto.telephone, dto.motDePasse, dto.nomAffiche, dto.email));
   }
 
   @Public() @Throttle(STRICT) @Post("confirmer") @HttpCode(200)
   async confirmer(@Body() dto: JetonDto) {
     await this.auth.confirmer(dto.jeton);
-    return { message: "Adresse confirmée. Tu peux te connecter." };
+    return { message: "Adresse e-mail confirmée. Elle te permettra de récupérer ton compte en cas d'oubli." };
   }
 
   @Public() @Throttle(STRICT) @Post("connexion") @HttpCode(200)
   async connexion(@Body() dto: ConnexionDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     this.verifierOrigine(req);
-    return this.poserSession(res, await this.auth.connecter(dto.email, dto.motDePasse));
+    return this.poserSession(res, await this.auth.connecter(dto.identifiant, dto.motDePasse));
   }
 
   @Public() @Throttle({ general: { limit: 30, ttl: 60_000 } }) @Post("renouveler") @HttpCode(200)
@@ -73,8 +74,11 @@ export class AuthController {
 
   @Public() @Throttle(STRICT) @Post("oubli") @HttpCode(202)
   async oubli(@Body() dto: OubliDto) {
-    await this.auth.demanderReinitialisation(dto.email);
-    return { message: "Si un compte existe pour cette adresse, un lien vient d'être envoyé." };
+    await this.auth.demanderReinitialisation(dto.identifiant);
+    return {
+      message:
+        "Si une adresse e-mail confirmée est liée à ce compte, un lien vient d'y être envoyé. Sinon, demande un mot de passe provisoire à ton chef de mission.",
+    };
   }
 
   @Public() @Throttle(STRICT) @Post("reinitialiser") @HttpCode(200)
@@ -83,7 +87,13 @@ export class AuthController {
     return { message: "Mot de passe changé. Tu peux te connecter." };
   }
 
-  @Get("moi")
+  @PermisPendantProvisoire() @Throttle(STRICT) @Post("mot-de-passe") @HttpCode(204)
+  async changerMotDePasse(@Req() req: RequeteAuth, @Body() dto: ChangementMdpDto) {
+    this.verifierOrigine(req);
+    await this.auth.changerMotDePasse(req.utilisateur.id, dto.actuel, dto.nouveau, req.cookies?.[COOKIE]);
+  }
+
+  @PermisPendantProvisoire() @Get("moi")
   moi(@Req() req: RequeteAuth) {
     return this.auth.moi(req.utilisateur.id);
   }

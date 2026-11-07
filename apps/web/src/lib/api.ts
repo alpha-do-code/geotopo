@@ -4,9 +4,9 @@ import type { Transport } from "./sync";
 // Même origine en production (le reverse proxy sert /api) ; en développement, l'API tourne à part
 const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "/api").replace(/\/$/, "");
 
-export type Utilisateur = { id: string; email: string; nomAffiche: string };
+export type Utilisateur = { id: string; email: string | null; telephone: string | null; nomAffiche: string; doitChangerMotDePasse: boolean };
 export type Organisation = { id: string; nom: string; role: Role; code_invitation: string | null };
-export type Membre = { user_id: string; nom_affiche: string; email: string; role: Role };
+export type Membre = { user_id: string; nom_affiche: string; telephone: string | null; email: string | null; role: Role };
 
 export class ErreurApi extends Error {
   constructor(
@@ -83,11 +83,18 @@ async function appel<T>(chemin: string, init: RequestInit = {}): Promise<T> {
 const json = (corps: unknown): RequestInit => ({ method: "POST", body: JSON.stringify(corps) });
 
 export const api = {
-  async connexion(email: string, motDePasse: string) {
-    const r = await brut<{ jetonAcces: string; utilisateur: Utilisateur }>("/auth/connexion", json({ email, motDePasse }));
+  async connexion(identifiant: string, motDePasse: string) {
+    const r = await brut<{ jetonAcces: string; utilisateur: Utilisateur }>("/auth/connexion", json({ identifiant, motDePasse }));
     jetonAcces = r.jetonAcces;
     return r.utilisateur;
   },
+  // Le compte s'ouvre tout de suite : la réponse est une session, comme la connexion
+  async inscription(telephone: string, motDePasse: string, nomAffiche: string, email: string) {
+    const r = await brut<{ jetonAcces: string; utilisateur: Utilisateur }>("/auth/inscription", json({ telephone, motDePasse, nomAffiche, email }));
+    jetonAcces = r.jetonAcces;
+    return r.utilisateur;
+  },
+  changerMotDePasse: (actuel: string, nouveau: string) => appel<void>("/auth/mot-de-passe", json({ actuel, nouveau })),
   async deconnexion() {
     try {
       await brut("/auth/deconnexion", { method: "POST" });
@@ -95,15 +102,16 @@ export const api = {
       jetonAcces = null;
     }
   },
-  inscription: (email: string, motDePasse: string, nomAffiche: string) => brut<{ message: string }>("/auth/inscription", json({ email, motDePasse, nomAffiche })),
   confirmer: (jeton: string) => brut<{ message: string }>("/auth/confirmer", json({ jeton })),
-  oubli: (email: string) => brut<{ message: string }>("/auth/oubli", json({ email })),
+  oubli: (identifiant: string) => brut<{ message: string }>("/auth/oubli", json({ identifiant })),
   reinitialiser: (jeton: string, motDePasse: string) => brut<{ message: string }>("/auth/reinitialiser", json({ jeton, motDePasse })),
 
   organisations: () => appel<Organisation[]>("/organisations"),
   creerOrganisation: (nom: string, nomAffiche: string) => appel<Organisation>("/organisations", json({ nom, nomAffiche })),
   rejoindre: (code: string, nomAffiche: string) => appel<Organisation>("/organisations/rejoindre", json({ code, nomAffiche })),
   membres: (org: string) => appel<Membre[]>(`/organisations/${org}/membres`),
+  motDePasseProvisoire: (org: string, user: string) => appel<{ motDePasse: string }>(`/organisations/${org}/membres/${user}/mot-de-passe-provisoire`, { method: "POST" }),
+  inviter: (org: string, emails: string[]) => appel<{ envoyes: number; echecs: string[] }>(`/organisations/${org}/invitations`, json({ emails })),
   changerRole: (org: string, user: string, role: Role) => appel<void>(`/organisations/${org}/membres/${user}`, { method: "PATCH", body: JSON.stringify({ role }) }),
 };
 

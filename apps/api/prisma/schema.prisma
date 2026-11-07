@@ -13,13 +13,20 @@ datasource db {
 
 // ── Comptes ──────────────────────────────────────────────────────────────────
 
+// Identifiant : le numéro de téléphone (E.164). L'e-mail est facultatif : il sert à recevoir les
+// invitations et à récupérer le compte seul. Les premiers comptes, créés par e-mail, n'ont pas de numéro.
 model utilisateurs {
-  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email             String    @unique
-  mot_de_passe      String
-  nom_affiche       String    @default("")
-  email_confirme_le DateTime? @db.Timestamptz(6)
-  cree_le           DateTime  @default(now()) @db.Timestamptz(6)
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email               String?   @unique
+  telephone           String?   @unique
+  mot_de_passe        String
+  nom_affiche         String    @default("")
+  email_confirme_le   DateTime? @db.Timestamptz(6)
+  // Mot de passe provisoire donné par un chef de mission : à remplacer à la connexion suivante
+  doit_changer_mdp    Boolean   @default(false)
+  mdp_provisoire_par  String?   @db.Uuid
+  mdp_provisoire_le   DateTime? @db.Timestamptz(6)
+  cree_le             DateTime  @default(now()) @db.Timestamptz(6)
 
   sessions    sessions[]
   jetons      jetons_email[]

@@ -4,7 +4,11 @@ import { BadRequestException, type ValidationError } from "@nestjs/common";
 // L'utilisateur reçoit à la place le nom du champ en français.
 const LIBELLES: Record<string, string> = {
   email: "l'adresse e-mail",
-  motDePasse: "le mot de passe (10 caractères au moins)",
+  motDePasse: "le mot de passe (8 caractères au moins)",
+  nouveau: "le nouveau mot de passe (8 caractères au moins)",
+  telephone: "le numéro de téléphone",
+  identifiant: "le numéro de téléphone",
+  emails: "les adresses e-mail",
   nom: "le nom",
   nomAffiche: "ton nom, tel que l'équipe le verra",
   jeton: "le lien reçu par e-mail",

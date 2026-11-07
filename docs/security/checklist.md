@@ -1,6 +1,6 @@
 # Liste de contrôle sécurité
 
-À repasser avant chaque mise en production et après chaque gros lot. Dernier audit : **7 novembre 2026**, avant la première mise en ligne (Worker Cloudflare + API Render).
+À repasser avant chaque mise en production et après chaque gros lot. Dernier audit : **7 novembre 2026**, avant la première mise en ligne (Worker Cloudflare + API Render), complété le même jour pour la connexion par numéro de téléphone.
 Légende : ✅ respecté, ⚠️ respecté avec une réserve, ❌ à faire, — sans objet.
 
 | #   | Règle                                    | État | Où c'est garanti |
@@ -20,10 +20,10 @@ Légende : ✅ respecté, ⚠️ respecté avec une réserve, ❌ à faire, — 
 | 13  | CORS limité à mon site                   | ✅   | Une seule origine (`ORIGINE_WEB`) ; les routes à cookie refusent toute autre `Origin`. En plus, l'API refuse tout appel direct sans le secret du Worker (`RELAIS_SECRET`, sauf `/api/ping`) |
 | 14  | Erreurs détaillées coupées               | ✅   | 500 générique, trace dans les journaux (`filtre-erreurs.ts`). Depuis le 7/11, les erreurs de validation sont en français et ne citent plus le code (`validation.ts`, test e2e) |
 | 15  | Pas de `console.log` oubliés             | ✅   | Aucun dans `apps/` ni `packages/` (grep) |
-| 16  | Message d'erreur unique à la connexion   | ✅   | « E-mail ou mot de passe incorrect. » dans les deux cas, temps constant ; l'inscription répond pareil qu'un compte existe ou non (test e2e) |
+| 16  | Message d'erreur unique à la connexion   | ⚠️   | Connexion : « Numéro ou mot de passe incorrect. » dans tous les cas (numéro inconnu, mal écrit, mauvais mot de passe), temps constant (test e2e). « Mot de passe oublié » répond pareil dans tous les cas. Réserve : depuis le 7/11, l'inscription signale un numéro déjà pris (choix assumé : sans SMS ni e-mail obligatoire, il n'y a pas d'autre moyen de prévenir la personne), sous limite de 5 essais par minute |
 | 17  | Webhooks signés                          | —    | Aucun webhook |
 | 18  | Dépendances à jour                       | ⚠️   | Mises à jour compatibles le 7/11 (NestJS 12.4.0, Next.js 16.4.5, React 19.3.1, argon2 0.45.2, `allowScripts` suivi). `npm audit --omit=dev` : 0. Restent 9 alertes modérées `minimatch` dans des outils de développement (`@nestjs/cli`, `typescript-eslint`) : seul `--force` les corrige, refusé |
-| 19  | E-mail confirmé                          | ⚠️   | Connexion refusée tant que l'adresse n'est pas confirmée. Envoi SMTP prêt (`ExpediteurSmtp`) ; la production refuse de démarrer sans `SMTP_URL`. **Fournisseur pas encore choisi** |
+| 19  | E-mail confirmé                          | ⚠️   | Depuis le 7/11 : connexion par numéro de téléphone, **sans vérification par SMS** (choix assumé : sans le code d'invitation d'un chef, un compte ne voit aucun chantier). L'e-mail est facultatif ; il ne sert à récupérer le compte que s'il est **confirmé**. Sinon, le chef donne un mot de passe provisoire : le jeton n'ouvre alors que le changement de mot de passe (garde serveur), et le chef doit être chef de **toutes** les équipes du membre (contre-épreuves faites) |
 | 20  | Sauvegarde automatique                   | ⚠️   | Action GitHub quotidienne (`.github/workflows/sauvegarde.yml`) : `pg_dump` chiffré par une clé publique age, gardé 90 jours hors de Neon. Chaîne dump → chiffrement → restauration prouvée en local (`scripts/tester-sauvegarde.sh`, contre-épreuve faite). Réserve : à confirmer par un premier passage réussi sur la vraie base, puis une restauration de cet artefact |
 
 ## Ce qui est propre à cette mise en ligne

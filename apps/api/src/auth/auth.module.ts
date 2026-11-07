@@ -25,5 +25,7 @@ import { GardeAuth } from "./garde-auth.js";
     },
     { provide: APP_GUARD, useClass: GardeAuth },
   ],
+  // Les invitations d'équipe partent aussi par e-mail
+  exports: [EXPEDITEUR],
 })
 export class AuthModule {}

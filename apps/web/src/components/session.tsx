@@ -23,7 +23,12 @@ type Session = {
   synchroniserMaintenant: () => Promise<void>;
   choisirOrg: (id: string) => Promise<void>;
   rechargerOrgs: () => Promise<Organisation[]>;
-  connexion: (email: string, motDePasse: string) => Promise<void>;
+  connexion: (identifiant: string, motDePasse: string) => Promise<void>;
+  inscription: (telephone: string, motDePasse: string, nomAffiche: string, email: string) => Promise<void>;
+  // Après un mot de passe provisoire : le nouveau remplace l'ancien, puis la session est rafraîchie
+  changerMotDePasse: (actuel: string, nouveau: string) => Promise<void>;
+  // Mot de passe provisoire tapé à la connexion, gardé en mémoire pour ne pas le redemander
+  mdpProvisoire: string | null;
   deconnexion: () => Promise<void>;
 };
 
@@ -104,7 +109,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         // Hors ligne : on garde l'utilisateur connu de l'appareil, la synchro reprendra au retour du réseau
       }
       if (annule) return;
-      if (u) await ouvrir(u);
+      if (u?.doitChangerMotDePasse) setUser(u);
+      else if (u) await ouvrir(u);
       if (!annule) setPret(true);
     })();
     const enLigneOn = () => setEnLigne(true);
@@ -118,16 +124,42 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     };
   }, [ouvrir]);
 
-  const connexion = useCallback(
-    async (email: string, motDePasse: string) => {
-      const u = await api.connexion(email, motDePasse);
+  const [mdpProvisoire, setMdpProvisoire] = useState<string | null>(null);
+
+  const entrer = useCallback(
+    async (u: Utilisateur) => {
       // Un autre compte sur cet appareil : on ne mélange pas ses données
       const precedent = await lireJson<Utilisateur>("utilisateur");
       if (precedent && precedent.id !== u.id) await viderBaseLocale();
       await ecrireMeta("utilisateur", JSON.stringify(u));
-      await ouvrir(u);
+      if (u.doitChangerMotDePasse) setUser(u); // rien d'autre n'est permis avant le nouveau mot de passe
+      else await ouvrir(u);
     },
     [ouvrir],
+  );
+
+  const connexion = useCallback(
+    async (identifiant: string, motDePasse: string) => {
+      const u = await api.connexion(identifiant, motDePasse);
+      setMdpProvisoire(u.doitChangerMotDePasse ? motDePasse : null);
+      await entrer(u);
+    },
+    [entrer],
+  );
+
+  const inscription = useCallback(
+    async (telephone: string, motDePasse: string, nomAffiche: string, email: string) => entrer(await api.inscription(telephone, motDePasse, nomAffiche, email)),
+    [entrer],
+  );
+
+  const changerMotDePasse = useCallback(
+    async (actuel: string, nouveau: string) => {
+      await api.changerMotDePasse(actuel, nouveau);
+      setMdpProvisoire(null);
+      const u = await renouveler();
+      if (u) await entrer(u);
+    },
+    [entrer],
   );
 
   const synchroniserMaintenant = useCallback(async () => {
@@ -187,9 +219,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       choisirOrg,
       rechargerOrgs,
       connexion,
+      inscription,
+      changerMotDePasse,
+      mdpProvisoire,
       deconnexion,
     }),
-    [pret, user, orgs, org, orgId, enLigne, enAttente, sync, synchroniserMaintenant, choisirOrg, rechargerOrgs, connexion, deconnexion],
+    [pret, user, orgs, org, orgId, enLigne, enAttente, sync, synchroniserMaintenant, choisirOrg, rechargerOrgs, connexion, inscription, changerMotDePasse, mdpProvisoire, deconnexion],
   );
 
   return <Ctx.Provider value={valeur}>{children}</Ctx.Provider>;

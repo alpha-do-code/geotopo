@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
-import { Connexion, Equipe } from "./compte";
+import { useEffect, useState, type ReactNode } from "react";
+import { api, ErreurApi } from "@/lib/api";
+import { ChangerMotDePasse, Connexion, Equipe, garderInvitation, retirerParametres } from "./compte";
+import { Encart } from "./choix";
 import { Coquille } from "./coquille";
 import { Logo } from "./logo";
 import { useSession } from "./session";
@@ -27,8 +29,46 @@ function Ecran({ children, large = false }: { children: ReactNode; large?: boole
   );
 }
 
+// Liens reçus par e-mail ou WhatsApp, traités où que l'on soit (connecté ou non) :
+// /?invitation=CODE garde le code de l'équipe, /compte/?confirmer=JETON confirme l'adresse e-mail
+function useLiensRecus() {
+  const [annonce, setAnnonce] = useState<{ ton: "ok" | "erreur"; texte: string } | null>(null);
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const invitation = p.get("invitation")?.trim().toLowerCase();
+    const confirmer = p.get("confirmer");
+    if (invitation && /^[0-9a-f]{12}$/.test(invitation)) garderInvitation(invitation);
+    if (invitation || confirmer) retirerParametres("invitation", "confirmer");
+    if (!confirmer) return;
+    api.confirmer(confirmer).then(
+      (r) => setAnnonce({ ton: "ok", texte: r.message }),
+      (e) => setAnnonce({ ton: "erreur", texte: e instanceof ErreurApi ? e.message : "Confirmation impossible. Réessaie." }),
+    );
+  }, []);
+  useEffect(() => {
+    if (!annonce) return;
+    const t = setTimeout(() => setAnnonce(null), 8000);
+    return () => clearTimeout(t);
+  }, [annonce]);
+  return annonce;
+}
+
 export function Portail({ children }: { children: ReactNode }) {
-  const { pret, user, org } = useSession();
+  const annonce = useLiensRecus();
+  return (
+    <>
+      {annonce && (
+        <div className="pas-impression fixed inset-x-0 top-0 z-30 mx-auto max-w-md p-3">
+          <Encart ton={annonce.ton} titre={annonce.texte} />
+        </div>
+      )}
+      <Contenu>{children}</Contenu>
+    </>
+  );
+}
+
+function Contenu({ children }: { children: ReactNode }) {
+  const { pret, user, org, deconnexion } = useSession();
   const chemin = usePathname();
 
   // Le guide d'installation se partage avant d'avoir un compte
@@ -58,6 +98,15 @@ export function Portail({ children }: { children: ReactNode }) {
       <Ecran>
         <Connexion />
         <Link href="/installer/" className="text-center text-sm text-accent underline">Installer l&apos;application sur cet appareil</Link>
+      </Ecran>
+    );
+
+  // Mot de passe provisoire donné par le chef : rien d'autre n'est permis avant d'en choisir un
+  if (user.doitChangerMotDePasse)
+    return (
+      <Ecran>
+        <ChangerMotDePasse impose />
+        <button type="button" onClick={deconnexion} className="text-center text-sm text-accent underline">Se déconnecter</button>
       </Ecran>
     );
 

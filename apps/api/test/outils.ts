@@ -59,11 +59,19 @@ export async function viderBase(prisma: PrismaService) {
 
 export const MDP = "mot-de-passe-solide";
 
-// Inscrit, confirme et connecte un utilisateur ; renvoie son jeton d'accès et son cookie
+// Numéros de test tous différents : +221 77 000 00 01, 02…
+let numero = 0;
+export const nouveauNumero = () => `+22177${String(++numero).padStart(7, "0")}`;
+
+// Inscrit un utilisateur (le compte s'ouvre tout de suite) ; renvoie son jeton d'accès, son cookie et son numéro
 export async function compte(ctx: Ctx, email: string, nom = email.split("@")[0]) {
-  await ctx.http().post("/api/auth/inscription").send({ email, motDePasse: MDP, nomAffiche: nom }).expect(202);
-  await ctx.http().post("/api/auth/confirmer").send({ jeton: ctx.boite.jeton(email, "confirmer") }).expect(200);
-  const res = await ctx.http().post("/api/auth/connexion").set("origin", ORIGINE).send({ email, motDePasse: MDP }).expect(200);
+  const telephone = nouveauNumero();
+  const res = await ctx.http().post("/api/auth/inscription").set("origin", ORIGINE).send({ telephone, email, motDePasse: MDP, nomAffiche: nom }).expect(201);
   ctx.remettreLimites();
-  return { jeton: res.body.jetonAcces as string, id: res.body.utilisateur.id as string, cookie: res.headers["set-cookie"] as unknown as string[] };
+  return {
+    jeton: res.body.jetonAcces as string,
+    id: res.body.utilisateur.id as string,
+    telephone,
+    cookie: res.headers["set-cookie"] as unknown as string[],
+  };
 }
