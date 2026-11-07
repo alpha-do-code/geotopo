@@ -36,6 +36,17 @@ qui ne vient pas du Worker (secret `RELAIS_SECRET`), sauf la sonde `/api/ping`.
    ```
 6. **Vérifier en ligne** : `https://…workers.dev/api/sante` → `{"ok":true}`, inscription, e-mail reçu, connexion, organisation, un chantier vu depuis un second appareil, installation sur Android et iPhone.
 
+## Sauvegarde quotidienne
+
+1. Créer la paire de clés, **une fois**, sur le Mac : `age-keygen -o ~/geotopo-sauvegarde-cle.txt`.
+   La ligne `# public key: age1…` est la clé publique. **Le fichier est la clé privée** : le ranger hors
+   ligne (gestionnaire de mots de passe, clé USB). Sans lui, aucune sauvegarde ne se relit.
+2. Dans le dépôt GitHub : secret `SAUVEGARDE_DATABASE_URL` (URL directe Neon) et variable
+   `SAUVEGARDE_CLE_PUBLIQUE` (la clé `age1…`).
+3. Onglet Actions → « Sauvegarde de la base » → Run workflow, puis télécharger l'artefact et le restaurer
+   dans une base locale vide : `createdb geotopo_verif && scripts/restaurer-sauvegarde.sh <fichier> ~/geotopo-sauvegarde-cle.txt geotopo_verif`.
+4. Ensuite, chaque nuit à 2 h 30 (heure de Dakar), 90 jours gardés. En local, `scripts/tester-sauvegarde.sh` rejoue toute la chaîne.
+
 ## E-mails (SMTP)
 
 Le plus simple sans nom de domaine : un compte Gmail dédié avec la validation en deux étapes et un **mot de passe d'application**.

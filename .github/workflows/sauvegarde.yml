@@ -1,0 +1,60 @@
+# Sauvegarde quotidienne de la base de production, hors de l'hébergeur (point 20 de la liste de sécurité).
+# Le dump est chiffré avec une clé publique age : GitHub ne voit jamais les données en clair, et seule
+# la clé privée (gardée hors ligne) permet de restaurer. Restauration : scripts/restaurer-sauvegarde.sh
+#
+# À régler une fois dans le dépôt (Settings → Secrets and variables → Actions) :
+#   secret   SAUVEGARDE_DATABASE_URL   URL directe Neon (?sslmode=require)
+#   variable SAUVEGARDE_CLE_PUBLIQUE   clé publique age (age1…)
+#
+# GitHub suspend les tâches planifiées d'un dépôt sans activité depuis 60 jours : un e-mail prévient.
+name: Sauvegarde de la base
+
+on:
+  schedule:
+    - cron: "30 2 * * *" # 2 h 30 UTC, la nuit à Dakar
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sauvegarde
+  cancel-in-progress: false
+
+jobs:
+  sauvegarde:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Installer pg_dump 18 et age
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-18 age
+
+      - name: Dump chiffré
+        env:
+          DATABASE_URL: ${{ secrets.SAUVEGARDE_DATABASE_URL }}
+          CLE_PUBLIQUE: ${{ vars.SAUVEGARDE_CLE_PUBLIQUE }}
+        run: |
+          set -euo pipefail
+          test -n "$DATABASE_URL" || { echo "::error::Secret SAUVEGARDE_DATABASE_URL manquant"; exit 1; }
+          test -n "$CLE_PUBLIQUE" || { echo "::error::Variable SAUVEGARDE_CLE_PUBLIQUE manquante"; exit 1; }
+          FICHIER="geotopo-$(date -u +%Y-%m-%dT%H%MZ).dump.age"
+          /usr/lib/postgresql/18/bin/pg_dump --format=custom --no-owner --no-privileges "$DATABASE_URL" | age -r "$CLE_PUBLIQUE" > "$FICHIER"
+          # Un dump vide ou tronqué ne doit pas passer pour une sauvegarde
+          TAILLE=$(stat -c%s "$FICHIER")
+          test "$TAILLE" -gt 2000 || { echo "::error::Dump trop petit ($TAILLE octets)"; exit 1; }
+          echo "FICHIER=$FICHIER" >> "$GITHUB_ENV"
+          echo "Sauvegarde $FICHIER : $TAILLE octets" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Garder 90 jours
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.FICHIER }}
+          path: ${{ env.FICHIER }}
+          retention-days: 90
+          if-no-files-found: error
+          compression-level: 0

@@ -24,7 +24,7 @@ Légende : ✅ respecté, ⚠️ respecté avec une réserve, ❌ à faire, — 
 | 17  | Webhooks signés                          | —    | Aucun webhook |
 | 18  | Dépendances à jour                       | ⚠️   | Mises à jour compatibles le 7/11 (NestJS 12.4.0, Next.js 16.4.5, React 19.3.1, argon2 0.45.2, `allowScripts` suivi). `npm audit --omit=dev` : 0. Restent 9 alertes modérées `minimatch` dans des outils de développement (`@nestjs/cli`, `typescript-eslint`) : seul `--force` les corrige, refusé |
 | 19  | E-mail confirmé                          | ⚠️   | Connexion refusée tant que l'adresse n'est pas confirmée. Envoi SMTP prêt (`ExpediteurSmtp`) ; la production refuse de démarrer sans `SMTP_URL`. **Fournisseur pas encore choisi** |
-| 20  | Sauvegarde automatique                   | ❌   | Neon garde un historique court (restauration à un instant récent), ce n'est pas une sauvegarde. À mettre en place : dump quotidien hors de l'hébergeur, restauration testée |
+| 20  | Sauvegarde automatique                   | ⚠️   | Action GitHub quotidienne (`.github/workflows/sauvegarde.yml`) : `pg_dump` chiffré par une clé publique age, gardé 90 jours hors de Neon. Chaîne dump → chiffrement → restauration prouvée en local (`scripts/tester-sauvegarde.sh`, contre-épreuve faite). Réserve : à confirmer par un premier passage réussi sur la vraie base, puis une restauration de cet artefact |
 
 ## Ce qui est propre à cette mise en ligne
 
