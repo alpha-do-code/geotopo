@@ -92,13 +92,14 @@ function Contenu({ children }: { children: ReactNode }) {
 
   // Cet écran est écrit dans la page statique : s'il reste affiché, c'est que le démarrage traîne ou que
   // le JavaScript ne s'est pas lancé. Le bloc d'aide apparaît alors par le seul CSS, sans React.
+  // Même fond sombre que l'écran de lancement d'Android (manifest.webmanifest), quel que soit le thème
   if (!pret)
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-6 px-6" aria-busy="true">
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-[#0f1513] px-6 text-[#e8ece9]" aria-busy="true">
         <span className="animate-pulse rounded-2xl bg-nav p-3"><Logo taille={48} /></span>
         <span className="sr-only">Chargement…</span>
         <div className="apparition-retardee flex max-w-sm flex-col items-center gap-3 text-center text-sm">
-          <p className="text-encre-2">Le démarrage prend plus de temps que prévu.</p>
+          <p>Le démarrage prend plus de temps que prévu.</p>
           <div className="flex flex-wrap justify-center gap-2">
             {/* Vrai lien, pas <Link> : il doit recharger la page même si React n'a pas démarré */}
             {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
