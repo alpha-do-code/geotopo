@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { api, ErreurApi } from "@/lib/api";
 import { ChangerMotDePasse, Connexion, Equipe, garderInvitation, retirerParametres } from "./compte";
 import { Encart } from "./choix";
+import { useInstallation } from "./installation";
 import { Coquille } from "./coquille";
 import { Logo } from "./logo";
 import { useSession } from "./session";
@@ -69,6 +70,7 @@ export function Portail({ children }: { children: ReactNode }) {
 
 function Contenu({ children }: { children: ReactNode }) {
   const { pret, user, org, deconnexion, erreurDemarrage } = useSession();
+  const { plateforme } = useInstallation();
   useEffect(() => {
     if (erreurDemarrage) console.error("Démarrage GeoTopo :", erreurDemarrage);
   }, [erreurDemarrage]);
@@ -114,7 +116,10 @@ function Contenu({ children }: { children: ReactNode }) {
       <Ecran>
         {erreurDemarrage && <Encart ton="alerte" titre={`Problème au démarrage : ${erreurDemarrage}`} />}
         <Connexion />
-        <Link href="/installer/" className="text-center text-sm text-accent underline">Installer l&apos;application sur cet appareil</Link>
+        {/* Inutile dans l'application déjà installée */}
+        {plateforme !== "installee" && (
+          <Link href="/installer/" className="text-center text-sm text-accent underline">Installer l&apos;application sur cet appareil</Link>
+        )}
       </Ecran>
     );
 
