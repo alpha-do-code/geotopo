@@ -141,5 +141,8 @@ function Contenu({ children }: { children: ReactNode }) {
       </Ecran>
     );
 
+  // L'assistant de création s'affiche en plein écran, sans barre de navigation
+  if (chemin.startsWith("/nouveau-chantier")) return <>{children}</>;
+
   return <Coquille>{children}</Coquille>;
 }

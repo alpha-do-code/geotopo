@@ -5,17 +5,21 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { BandeauInstallation } from "@/components/installation";
+import { AccueilMobile, PremierLancement } from "@/components/accueil";
 import { Pastille } from "@/components/pastille";
 import { useSession } from "@/components/session";
-import { db, enregistrerChantier, nouveauChantier } from "@/lib/db";
+import { db } from "@/lib/db";
+import { creerChantierExemple } from "@/lib/nouveau";
 import { CLASSES, formatCm, METHODES, NATURES, REFERENTIELS, type Nature, type Referentiel } from "@geotopo/metier";
 import { resultatChantier, STATUTS, statutChantier, type Statut } from "@/lib/statut";
 import { suiviChantier, type Suivi } from "@/lib/suivi";
 import { Liste, optionsDe } from "@/components/liste";
 
 export default function TableauDeBord() {
-  const { orgId, pret } = useSession();
+  const { orgId, pret, user, org } = useSession();
   const router = useRouter();
+  // Sur téléphone : l'accueil résumé (piste A) d'abord, la liste complète avec ses filtres sur demande
+  const [toutVoir, setToutVoir] = useState(false);
   const [filtreStatut, setFiltreStatut] = useState<Statut | "tous">("tous");
   const [filtreNature, setFiltreNature] = useState<Nature | "toutes">("toutes");
   const [filtreRef, setFiltreRef] = useState<Referentiel | "tous">("tous");
@@ -46,24 +50,43 @@ export default function TableauDeBord() {
       (filtreRef === "tous" || l.c.referentiel === filtreRef),
   );
 
-  async function creer() {
-    const c = { ...nouveauChantier(orgId), nom: "Nouveau chantier" };
-    await enregistrerChantier(c);
-    router.push(`/chantier/?id=${c.id}`);
+  async function voirExemple() {
+    router.push(`/chantier/?id=${await creerChantierExemple(orgId)}`);
   }
+
+  // Premier lancement (piste B) : sur tous les écrans
+  if (chantiers && lignes.length === 0)
+    return (
+      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-6 px-4 py-6 md:py-10">
+        <BandeauInstallation />
+        <PremierLancement pret={pret} codeInvitation={org?.code_invitation ?? null} nomEquipe={org?.nom ?? ""} onExemple={voirExemple} />
+      </main>
+    );
+
+  const voirListe = (s: Statut | "tous") => {
+    setFiltreStatut(s);
+    setToutVoir(true);
+  };
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 md:px-10 md:py-8">
       <BandeauInstallation />
+      {!toutVoir && <AccueilMobile prenom={(user?.nomAffiche ?? "").split(" ")[0]} equipe={org?.nom ?? ""} lignes={lignes} onVoir={voirListe} />}
+      <div className={toutVoir ? "contents" : "hidden md:contents"}>
+      {toutVoir && (
+        <button type="button" onClick={() => setToutVoir(false)} className="-mb-2 self-start text-sm font-semibold text-accent md:hidden">
+          ‹ Accueil
+        </button>
+      )}
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold md:text-3xl">Chantiers</h1>
           <p className="mt-1 text-encre-2">Conformité au cahier des charges, avancement et résultats, par chantier.</p>
         </div>
-        <button type="button" onClick={creer} disabled={!pret} className="bouton-principal">
+        <Link href="/nouveau-chantier/" className="bouton-principal">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M8 2v12M2 8h12" /></svg>
           Nouveau chantier
-        </button>
+        </Link>
       </header>
 
       <section aria-label="Indicateurs" className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
@@ -105,10 +128,9 @@ export default function TableauDeBord() {
         </div>
       </section>
 
-      {chantiers && lignes.length === 0 ? (
+      {visibles.length === 0 ? (
         <div className="carte p-8 text-center">
-          <p className="font-semibold">Aucun chantier pour l&apos;instant.</p>
-          <p className="mt-1 text-encre-2">Crée ton premier chantier pour saisir ses exigences, ses points levés et ses contrôles.</p>
+          <p className="font-semibold">Aucun chantier ne correspond à ces filtres.</p>
         </div>
       ) : (
         <>
@@ -169,6 +191,7 @@ export default function TableauDeBord() {
           </ul>
         </>
       )}
+      </div>
     </main>
   );
 }
