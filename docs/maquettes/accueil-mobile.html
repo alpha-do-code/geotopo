@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GeoTopo · maquettes accueil mobile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --fond: #0f1513; --surface: #17201c; --surface-2: #1c2722; --encre: #e6ece8; --encre-2: #a6b4ad;
+    --bord: #2c3a34; --bord-fort: #3d4d46; --accent: #3fae94; --accent-encre: #08130f; --nav: #0a0f0d;
+    --ok-fond: #143a30; --ok: #9fe0cb; --alerte-fond: #3d2a10; --alerte: #f7c98b; --erreur-fond: #43201b; --erreur: #f4b3a9;
+    --info-fond: #1e2740; --info: #b6c5ec;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: #070b0a; color: var(--encre); font: 14px/1.45 "IBM Plex Sans", system-ui, sans-serif; padding: 32px 16px 64px; }
+  .mono { font-family: "IBM Plex Mono", monospace; }
+  h1.page { font-size: 26px; text-align: center; }
+  p.intro { color: var(--encre-2); text-align: center; max-width: 720px; margin: 8px auto 0; }
+  section.piste { max-width: 1240px; margin: 48px auto 0; }
+  .piste > h2 { font-size: 22px; }
+  .piste > p { color: var(--encre-2); max-width: 820px; margin-top: 6px; }
+  .ecrans { display: flex; flex-wrap: wrap; gap: 28px; margin-top: 22px; justify-content: center; }
+  figure { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+  figcaption { color: var(--encre-2); font-size: 13px; text-align: center; max-width: 340px; }
+  .tel { width: 360px; height: 740px; border-radius: 38px; border: 10px solid #222c28; background: var(--fond); overflow: hidden; position: relative; display: flex; flex-direction: column; box-shadow: 0 20px 60px #0008; }
+  .statusbar { height: 26px; flex: none; display: flex; justify-content: space-between; padding: 6px 20px 0; font-size: 11px; color: var(--encre-2); }
+  .contenu { flex: 1; overflow: hidden; padding: 8px 16px 0; display: flex; flex-direction: column; gap: 14px; }
+  .tabbar { flex: none; height: 64px; border-top: 1px solid var(--bord); background: var(--surface); display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; font-size: 11px; color: var(--encre-2); text-align: center; }
+  .tabbar .on { color: var(--accent); font-weight: 600; }
+  .tabbar svg { display: block; margin: 0 auto 3px; }
+  .muted { color: var(--encre-2); }
+  .petit { font-size: 12px; }
+  .carte { background: var(--surface); border: 1px solid var(--bord); border-radius: 16px; padding: 14px; }
+  .btn { display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 14px; min-height: 48px; font-weight: 600; font-size: 15px; }
+  .btn.p { background: var(--accent); color: var(--accent-encre); }
+  .btn.s { border: 1px solid var(--bord-fort); color: var(--encre); }
+  .pill { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 2px 9px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+  .ok { background: var(--ok-fond); color: var(--ok); } .al { background: var(--alerte-fond); color: var(--alerte); }
+  .er { background: var(--erreur-fond); color: var(--erreur); } .in { background: var(--info-fond); color: var(--info); }
+  .row { display: flex; align-items: center; gap: 10px; }
+  .between { justify-content: space-between; }
+  .avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--bord-fort); display: grid; place-items: center; font-weight: 700; color: var(--accent); }
+  .barre { height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+  .barre > span { display: block; height: 100%; border-radius: 99px; background: var(--accent); }
+  .etape { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-top: 1px solid var(--bord); }
+  .etape:first-of-type { border-top: 0; }
+  .num { width: 28px; height: 28px; border-radius: 50%; flex: none; display: grid; place-items: center; font-weight: 700; font-size: 13px; border: 1.5px solid var(--bord-fort); color: var(--encre-2); }
+  .num.fait { background: var(--accent); border-color: var(--accent); color: var(--accent-encre); }
+  .num.ici { border-color: var(--accent); color: var(--accent); }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .action { background: var(--surface); border: 1px solid var(--bord); border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 8px; min-height: 92px; }
+  .action .ic { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: var(--surface-2); color: var(--accent); }
+  .action.principale { background: var(--accent); color: var(--accent-encre); border-color: var(--accent); }
+  .action.principale .ic { background: #0001; color: var(--accent-encre); }
+  .anneau { --v: 60; width: 46px; height: 46px; border-radius: 50%; flex: none; background: conic-gradient(var(--accent) calc(var(--v) * 1%), var(--surface-2) 0); display: grid; place-items: center; }
+  .anneau > span { width: 36px; height: 36px; border-radius: 50%; background: var(--surface); display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+  .anneau.retard { background: conic-gradient(var(--alerte) calc(var(--v) * 1%), var(--surface-2) 0); }
+  .recherche { display: flex; align-items: center; gap: 8px; height: 44px; border-radius: 12px; background: var(--surface); border: 1px solid var(--bord); padding: 0 12px; color: var(--encre-2); }
+  .chips { display: flex; gap: 8px; overflow: hidden; }
+  .chip { border: 1px solid var(--bord-fort); border-radius: 999px; padding: 7px 12px; white-space: nowrap; font-size: 13px; }
+  .chip.on { background: var(--accent); color: var(--accent-encre); border-color: var(--accent); font-weight: 600; }
+  .chip b { font-weight: 700; margin-left: 4px; }
+  .fiche { display: flex; overflow: hidden; border-radius: 16px; background: var(--surface); border: 1px solid var(--bord); }
+  .fiche > i { width: 5px; flex: none; }
+  .fiche > div { padding: 12px 14px; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .fab { position: absolute; right: 18px; bottom: 82px; height: 56px; padding: 0 20px; border-radius: 18px; background: var(--accent); color: var(--accent-encre); display: flex; align-items: center; gap: 8px; font-weight: 700; box-shadow: 0 10px 24px #0009; }
+  .feuille { position: absolute; inset: auto 0 0 0; background: var(--surface); border-radius: 26px 26px 0 0; border-top: 1px solid var(--bord-fort); padding: 10px 18px 22px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 -20px 50px #000a; }
+  .poignee { width: 42px; height: 5px; border-radius: 9px; background: var(--bord-fort); margin: 0 auto 4px; }
+  .voile { position: absolute; inset: 0; background: #0009; }
+  .champ { height: 48px; border-radius: 12px; border: 1px solid var(--bord-fort); background: var(--fond); display: flex; align-items: center; padding: 0 12px; }
+  .champ.focus { border-color: var(--accent); box-shadow: 0 0 0 3px #3fae9433; }
+  .tuiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tuile { border: 1px solid var(--bord-fort); border-radius: 14px; padding: 10px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 500; }
+  .tuile.on { border-color: var(--accent); background: #3fae9414; }
+  .tuile svg { color: var(--accent); }
+  .points { display: flex; gap: 6px; justify-content: center; }
+  .points i { width: 22px; height: 5px; border-radius: 9px; background: var(--bord-fort); }
+  .points i.on { background: var(--accent); }
+  .alerte-jour { border-radius: 16px; padding: 12px 14px; background: var(--alerte-fond); color: var(--alerte); display: flex; gap: 10px; align-items: center; }
+  .note { max-width: 1240px; margin: 40px auto 0; border: 1px dashed var(--bord-fort); border-radius: 14px; padding: 16px 18px; color: var(--encre-2); }
+  .note b { color: var(--encre); }
+</style>
+</head>
+<body>
+
+<h1 class="page">Accueil mobile de GeoTopo : deux pistes</h1>
+<p class="intro">Trois écrans par piste : le premier lancement (aucun chantier), l'accueil d'un chef qui a déjà des chantiers, et la création d'un chantier. Les deux pistes remplacent la fiche vide « Nouveau chantier » par un assistant en 3 questions.</p>
+
+<!-- ============================ PISTE A ============================ -->
+<section class="piste">
+  <h2>Piste A · « Mon tableau de bord »</h2>
+  <p>L'accueil parle à la personne : bonjour, ce qui l'attend aujourd'hui, et quatre grands boutons d'action. Pour un nouveau, un parcours « Bien démarrer » en 3 étapes qui se coche tout seul. Les chantiers suivent, avec un anneau d'avancement.</p>
+  <div class="ecrans">
+
+    <figure>
+      <div class="tel">
+        <div class="statusbar"><span>09:41</span><span>Orange SN · 4G</span></div>
+        <div class="contenu">
+          <div class="row between">
+            <div class="row"><div class="avatar">M</div><div><div class="petit muted">Bonjour,</div><div style="font-weight:700;font-size:17px">Modou</div></div></div>
+            <span class="pill ok">● À jour</span>
+          </div>
+          <div class="carte" style="padding:16px">
+            <div class="row between"><b style="font-size:16px">Bien démarrer</b><span class="petit muted">1 / 3</span></div>
+            <div class="barre" style="margin:10px 0 4px"><span style="width:33%"></span></div>
+            <div class="etape"><div class="num fait">✓</div><div><b>Créer ton équipe</b><div class="petit muted">Cabinet Diop Topographie</div></div></div>
+            <div class="etape"><div class="num ici">2</div><div style="flex:1"><b>Créer ton premier chantier</b><div class="petit muted">Nom, lieu, nature des travaux et précision exigée : 3 questions.</div><div class="btn p" style="margin-top:10px;min-height:42px;font-size:14px">Commencer</div></div></div>
+            <div class="etape"><div class="num">3</div><div><b>Inviter ton équipe</b><div class="petit muted">Par WhatsApp, en un geste.</div></div></div>
+          </div>
+          <div class="actions">
+            <div class="action principale"><div class="ic">＋</div><b>Nouveau chantier</b></div>
+            <div class="action"><div class="ic">⌖</div><b>Saisie terrain</b></div>
+            <div class="action"><div class="ic">◫</div><b>Planning</b></div>
+            <div class="action"><div class="ic">✆</div><b>Inviter</b></div>
+          </div>
+        </div>
+        <div class="tabbar"><div class="on"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M5 21V9l7-5 7 5v12"/></svg>Accueil</div><div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v15H4zM4 10h16"/></svg>Planning</div><div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/></svg>Terrain</div><div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M10 20V4M16 20v-7"/></svg>Suivi</div><div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Compte</div></div>
+      </div>
+      <figcaption><b>Premier lancement.</b> Pas de compteurs à zéro : un parcours en 3 étapes, la prochaine est mise en avant avec son bouton.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="tel">
+        <div class="statusbar"><span>09:41</span><span>Orange SN · 4G</span></div>
+        <div class="contenu">
+          <div class="row between">
+            <div class="row"><div class="avatar">M</div><div><div class="petit muted">Bonjour,</div><div style="font-weight:700;font-size:17px">Modou</div></div></div>
+            <span class="pill ok">● À jour</span>
+          </div>
+          <div class="alerte-jour"><b style="font-size:20px">2</b><div><b>contrôles à valider</b><div class="petit">et 1 chantier en retard · voir</div></div><span style="margin-left:auto">›</span></div>
+          <div class="actions">
+            <div class="action principale"><div class="ic">＋</div><b>Nouveau chantier</b></div>
+            <div class="action"><div class="ic">⌖</div><b>Saisie terrain</b></div>
+          </div>
+          <div class="row between"><b style="font-size:16px">Mes chantiers</b><span class="petit" style="color:var(--accent)">Tout voir (7)</span></div>
+          <div class="carte row" style="gap:12px">
+            <div class="anneau" style="--v:72"><span>72%</span></div>
+            <div style="flex:1;min-width:0"><div class="row between"><b>Lotissement Keur Massar</b></div><div class="petit muted">Bornage · GNSS RTK · Classe 2</div><div style="margin-top:5px"><span class="pill al">À valider</span></div></div>
+          </div>
+          <div class="carte row" style="gap:12px">
+            <div class="anneau retard" style="--v:38"><span>38%</span></div>
+            <div style="flex:1;min-width:0"><b>Route Thiès – Khombole</b><div class="petit muted">Levés · Station totale</div><div style="margin-top:5px"><span class="pill er">4 j de retard</span></div></div>
+          </div>
+          <div class="carte row" style="gap:12px">
+            <div class="anneau" style="--v:100"><span>✓</span></div>
+            <div style="flex:1;min-width:0"><b>Château d'eau Mbour</b><div class="petit muted">Auscultation · EMQ 0,8 cm</div><div style="margin-top:5px"><span class="pill ok">Conforme</span></div></div>
+          </div>
+        </div>
+        <div class="tabbar"><div class="on"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M5 21V9l7-5 7 5v12"/></svg>Accueil</div><div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v15H4zM4 10h16"/></svg>Planning</div><div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/></svg>Terrain</div><div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M10 20V4M16 20v-7"/></svg>Suivi</div><div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Compte</div></div>
+      </div>
+      <figcaption><b>Avec des chantiers.</b> En haut, ce qui demande une action aujourd'hui. Les chantiers les plus urgents d'abord, avancement en anneau.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="tel">
+        <div class="statusbar"><span>09:41</span><span>Orange SN · 4G</span></div>
+        <div class="contenu">
+          <div class="row" style="gap:14px"><span style="font-size:22px">‹</span><b style="font-size:17px">Nouveau chantier</b><span class="petit muted" style="margin-left:auto">2 / 3</span></div>
+          <div class="points"><i class="on"></i><i class="on"></i><i></i></div>
+          <div><div style="font-size:21px;font-weight:700">Quels travaux ?</div><div class="muted">On en déduit la méthode et la précision habituelles. Tu pourras tout changer.</div></div>
+          <div class="tuiles">
+            <div class="tuile on"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20 12 4l8 16zM12 4v16"/></svg>Bornage, délimitation</div>
+            <div class="tuile"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17c3-4 6-4 9 0s6 4 9 0M3 11c3-4 6-4 9 0s6 4 9 0"/></svg>Topographie rurale</div>
+            <div class="tuile"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 21V9h6v12M14 21V4h6v17"/></svg>Topographie urbaine</div>
+            <div class="tuile"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 21V8l6-5 6 5v13M3 21h18"/></svg>Auscultation</div>
+            <div class="tuile" style="grid-column:span 2"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/></svg>Levés et implantations</div>
+          </div>
+          <div class="carte petit" style="padding:10px 12px"><b>Proposé :</b> GNSS RTK · Classe 2 (± 5 cm)</div>
+          <div class="btn p" style="margin-top:auto;margin-bottom:16px">Continuer</div>
+        </div>
+      </div>
+      <figcaption><b>Création en 3 écrans.</b> 1 : nom, lieu, client. 2 : quels travaux (tuiles). 3 : précision exigée, puis le chantier s'ouvre prêt à saisir.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ============================ PISTE B ============================ -->
+<section class="piste">
+  <h2>Piste B · « Liste d'abord, façon application native »</h2>
+  <p>Plus sobre, comme les applications pro qu'on utilise tous les jours : un grand titre, une recherche, des onglets de statut avec leur nombre, et un bouton flottant « + Chantier » toujours sous le pouce. Les filtres avancés passent dans une feuille qui monte du bas.</p>
+  <div class="ecrans">
+
+    <figure>
+      <div class="tel">
+        <div class="statusbar"><span>09:41</span><span>Orange SN · 4G</span></div>
+        <div class="contenu" style="justify-content:center;text-align:center;gap:16px;padding-bottom:40px">
+          <svg width="120" height="120" viewBox="0 0 120 120" fill="none" style="margin:0 auto" stroke="#3fae94" stroke-width="2">
+            <ellipse cx="60" cy="92" rx="46" ry="12" opacity=".35"/><ellipse cx="60" cy="92" rx="30" ry="7" opacity=".6"/>
+            <path d="M60 90S34 64 34 44a26 26 0 0 1 52 0c0 20-26 46-26 46z" fill="#17201c"/><circle cx="60" cy="44" r="9"/>
+            <path d="M38 36c8 4 14-2 22 2s12 10 22 6" opacity=".5"/>
+          </svg>
+          <div style="font-size:21px;font-weight:700">Ton premier chantier</div>
+          <div class="muted">Saisis les exigences du cahier des charges, lève tes points sur le terrain, et GeoTopo calcule l'EMQ et le verdict.</div>
+          <div class="btn p">＋ Créer un chantier</div>
+          <div class="btn s">Inviter mon équipe sur WhatsApp</div>
+          <div class="petit" style="color:var(--accent)">Voir un chantier d'exemple</div>
+        </div>
+        <div class="tabbar"><div class="on"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M5 21V9l7-5 7 5v12"/></svg>Chantiers</div><div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v15H4zM4 10h16"/></svg>Planning</div><div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/></svg>Terrain</div><div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M10 20V4M16 20v-7"/></svg>Suivi</div><div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Compte</div></div>
+      </div>
+      <figcaption><b>Premier lancement.</b> Un écran d'accueil illustré, une seule action principale. « Voir un chantier d'exemple » ouvre un chantier fictif pour découvrir l'app sans rien saisir.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="tel">
+        <div class="statusbar"><span>09:41</span><span>Orange SN · 4G</span></div>
+        <div class="contenu">
+          <div class="row between"><div style="font-size:26px;font-weight:700">Chantiers</div><span class="pill ok">● À jour</span></div>
+          <div class="recherche">⌕ <span>Rechercher un chantier, un lieu…</span><span style="margin-left:auto;color:var(--accent);font-weight:600">Filtrer</span></div>
+          <div class="chips"><span class="chip on">Tous<b>7</b></span><span class="chip">À valider<b>2</b></span><span class="chip">En retard<b>1</b></span><span class="chip">Conformes<b>3</b></span></div>
+          <div class="fiche"><i style="background:var(--alerte)"></i><div><div class="row between"><b>Lotissement Keur Massar</b><span class="pill al">À valider</span></div><div class="petit muted">Bornage · GNSS RTK · Classe 2</div><div class="row" style="gap:8px"><div class="barre" style="flex:1"><span style="width:72%"></span></div><span class="petit mono">72 %</span></div></div></div>
+          <div class="fiche"><i style="background:var(--erreur)"></i><div><div class="row between"><b>Route Thiès – Khombole</b><span class="pill er">4 j retard</span></div><div class="petit muted">Levés · Station totale · Classe 3</div><div class="row" style="gap:8px"><div class="barre" style="flex:1"><span style="width:38%;background:var(--alerte)"></span></div><span class="petit mono">38 %</span></div></div></div>
+          <div class="fiche"><i style="background:var(--ok)"></i><div><div class="row between"><b>Château d'eau Mbour</b><span class="pill ok">Conforme</span></div><div class="petit muted">Auscultation · EMQ <span class="mono">0,8 cm</span></div><div class="row" style="gap:8px"><div class="barre" style="flex:1"><span style="width:100%"></span></div><span class="petit mono">100 %</span></div></div></div>
+          <div class="fiche"><i style="background:var(--info)"></i><div><div class="row between"><b>Parcelle Ngaparou</b><span class="pill in">En cours</span></div><div class="petit muted">Topographie rurale · GNSS statique</div></div></div>
+        </div>
+        <div class="fab">＋ Chantier</div>
+        <div class="tabbar"><div class="on"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M5 21V9l7-5 7 5v12"/></svg>Chantiers</div><div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v15H4zM4 10h16"/></svg>Planning</div><div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/></svg>Terrain</div><div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M10 20V4M16 20v-7"/></svg>Suivi</div><div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Compte</div></div>
+      </div>
+      <figcaption><b>Avec des chantiers.</b> Les 4 compteurs deviennent des onglets avec leur nombre. Liseré de couleur à gauche selon le statut, barre d'avancement.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="tel">
+        <div class="statusbar"><span>09:41</span><span>Orange SN · 4G</span></div>
+        <div class="contenu">
+          <div style="font-size:26px;font-weight:700">Chantiers</div>
+          <div class="recherche">⌕ Rechercher…</div>
+          <div class="fiche"><i style="background:var(--alerte)"></i><div><b>Lotissement Keur Massar</b></div></div>
+        </div>
+        <div class="voile"></div>
+        <div class="feuille">
+          <div class="poignee"></div>
+          <div class="row between"><b style="font-size:18px">Nouveau chantier</b><span class="petit muted">1 / 3</span></div>
+          <div><div class="petit muted" style="margin-bottom:6px">Nom du chantier</div><div class="champ focus">Lotissement Keur Massar<span style="color:var(--accent)">|</span></div></div>
+          <div><div class="petit muted" style="margin-bottom:6px">Lieu</div><div class="champ">Keur Massar, Dakar</div></div>
+          <div><div class="petit muted" style="margin-bottom:6px">Client <span>(facultatif)</span></div><div class="champ muted">Ex. SN HLM</div></div>
+          <div class="btn p">Continuer</div>
+          <div class="points"><i class="on"></i><i></i><i></i></div>
+        </div>
+      </div>
+      <figcaption><b>Création en feuille.</b> Le même assistant en 3 questions, mais dans une feuille qui monte du bas : on garde la liste en arrière-plan.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<div class="note">
+  <b>Commun aux deux pistes</b>, quel que soit ton choix : l'assistant de création en 3 questions (la fiche complète reste accessible ensuite), les filtres « Nature » et « Référentiel » rangés derrière « Filtrer », et l'écran tablette / ordinateur inchangé. Données fictives pour l'illustration.
+</div>
+
+</body>
+</html>

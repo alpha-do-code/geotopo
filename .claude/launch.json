@@ -63,6 +63,20 @@
         "cd apps/web && npx wrangler dev --port 8788 --var API_URL:http://127.0.0.1:3999 --var RELAIS_SECRET:secret-local-de-test-secret-local-de-test"
       ],
       "port": 8788
+    },
+    {
+      "name": "geotopo-maquettes",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4320",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "docs/maquettes"
+      ],
+      "port": 4320
     }
   ]
 }
