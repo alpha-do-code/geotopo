@@ -135,7 +135,7 @@ function Contenu({ children }: { children: ReactNode }) {
   if (!org)
     return (
       <Ecran large>
-        <p className="text-center">Dernière étape : rejoins l&apos;équipe avec le code donné par ton chef de mission, ou crée la tienne.</p>
+        <p className="text-center">Dernière étape : crée ton équipe, ou rejoins celle d&apos;un collègue.</p>
         <Equipe />
       </Ecran>
     );

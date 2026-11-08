@@ -240,6 +240,8 @@ export function Equipe() {
   const { user, org, orgs, choisirOrg, rechargerOrgs, deconnexion, enAttente, enLigne } = useSession();
   const [nomOrg, setNomOrg] = useState("");
   const [code, setCode] = useState(() => lireInvitation() ?? ""); // rempli par un lien d'invitation
+  // Arrivé par un lien d'invitation : « Rejoindre » est déjà ouvert ; sinon, les deux choix sont fermés
+  const [choix, setChoix] = useState<"creer" | "rejoindre" | null>(() => (lireInvitation() ? "rejoindre" : null));
   const [nomAffiche, setNomAffiche] = useState(user?.nomAffiche ?? ""); // déjà donné à l'inscription
   const [changerMdp, setChangerMdp] = useState(false);
   const [mdpOk, setMdpOk] = useState(false);
@@ -439,29 +441,72 @@ export function Equipe() {
           </div>
         </section>
       ) : (
-        <section className="carte flex flex-col gap-5 p-5 md:p-6">
-          <h2 className="text-lg font-semibold">Rejoindre ou créer une organisation</h2>
-          {locaux > 0 && <Encart ton="info" titre={`${locaux} chantier(s) saisi(s) sur cet appareil rejoindront l'organisation choisie.`} />}
-          <label className="etiquette">Ton nom, tel que l&apos;équipe le verra
-            <input className="champ font-normal" value={nomAffiche} maxLength={120} onChange={(e) => setNomAffiche(e.target.value)} />
-          </label>
-          <form onSubmit={rejoindre} className="flex flex-col gap-2">
-            <label className="etiquette">Code d&apos;invitation
-              <input className="champ font-mono font-normal" value={code} required onChange={(e) => setCode(e.target.value)} />
+        <section className="flex flex-col gap-3">
+          {locaux > 0 && <Encart ton="info" titre={`${locaux} chantier(s) saisi(s) sur cet appareil rejoindront l'équipe choisie.`} />}
+          {/* Les comptes créés avant le nom à l'inscription n'en ont pas : on le demande ici seulement */}
+          {!user?.nomAffiche && (
+            <label className="etiquette carte p-4">Ton nom, tel que l&apos;équipe le verra
+              <input className="champ font-normal" value={nomAffiche} required maxLength={120} onChange={(e) => setNomAffiche(e.target.value)} />
             </label>
-            <button type="submit" className="bouton-principal">Rejoindre</button>
-          </form>
-          <div className="border-t border-bord pt-4">
-            <form onSubmit={creer} className="flex flex-col gap-2">
-              <label className="etiquette">Nom du bureau d&apos;études ou de l&apos;équipe
-                <input className="champ font-normal" value={nomOrg} required minLength={2} maxLength={120} onChange={(e) => setNomOrg(e.target.value)} />
+          )}
+
+          <ChoixEquipe
+            ouvert={choix === "creer"}
+            onOuvrir={() => setChoix("creer")}
+            titre="Je crée mon équipe"
+            detail="Tu es chef de mission, ou tu travailles seul. Tu pourras inviter des collègues ensuite."
+          >
+            <form onSubmit={creer} className="flex flex-col gap-3">
+              <label className="etiquette">Nom du cabinet ou de l&apos;équipe
+                <input className="champ font-normal" value={nomOrg} required minLength={2} maxLength={120} placeholder="Cabinet Diop Topographie" autoFocus onChange={(e) => setNomOrg(e.target.value)} />
               </label>
-              <button type="submit" className="bouton-secondaire">Créer l&apos;organisation (tu en seras chef de mission)</button>
+              <button type="submit" className="bouton-principal">Créer mon équipe</button>
             </form>
-          </div>
+          </ChoixEquipe>
+
+          <ChoixEquipe
+            ouvert={choix === "rejoindre"}
+            onOuvrir={() => setChoix("rejoindre")}
+            titre="J'ai un code d'invitation"
+            detail="Un collègue t'a invité dans son équipe."
+          >
+            <form onSubmit={rejoindre} className="flex flex-col gap-3">
+              <label className="etiquette">Code d&apos;invitation
+                <input
+                  className="champ font-mono font-normal"
+                  value={code}
+                  required
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  placeholder="c23e89c0db1a"
+                  // Le lien entier collé depuis WhatsApp marche aussi : on n'en garde que le code
+                  onChange={(e) => setCode(e.target.value.match(/[0-9a-f]{12}/i)?.[0].toLowerCase() ?? e.target.value)}
+                />
+                <span className="text-[13px] font-normal text-encre-2">12 caractères, ou colle directement le lien reçu.</span>
+              </label>
+              <button type="submit" className="bouton-principal">Rejoindre l&apos;équipe</button>
+            </form>
+          </ChoixEquipe>
         </section>
       )}
       {erreur && <Encart ton="erreur" titre={erreur} />}
     </>
+  );
+}
+
+// Un choix de l'écran « équipe » : une grande carte qui se déplie quand on la touche
+function ChoixEquipe({ ouvert, onOuvrir, titre, detail, children }: { ouvert: boolean; onOuvrir: () => void; titre: string; detail: string; children: React.ReactNode }) {
+  return (
+    <div className={`carte flex flex-col gap-4 p-5 transition-colors ${ouvert ? "border-accent" : ""}`}>
+      <button type="button" onClick={onOuvrir} aria-expanded={ouvert} className="flex items-center justify-between gap-3 text-left">
+        <span>
+          <span className="block text-lg font-semibold">{titre}</span>
+          <span className="block text-sm text-encre-2">{detail}</span>
+        </span>
+        {!ouvert && <span aria-hidden="true" className="text-xl text-accent">→</span>}
+      </button>
+      {ouvert && children}
+    </div>
   );
 }
