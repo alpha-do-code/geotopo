@@ -3,7 +3,7 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Choix } from "@/components/choix";
 import { useSession } from "@/components/session";
 import { db, enregistrerPoint, maintenant, type Chantier, type Point } from "@/lib/db";
@@ -48,6 +48,20 @@ function codeSuivant(code: string) {
   return m ? m[1] + String(Number(m[2]) + 1).padStart(m[2].length, "0") : code;
 }
 
+// Nom proposé pour le prochain levé : la suite du dernier levé saisi, ou P1 pour commencer
+function prochainLeve(points: Point[]) {
+  const leves = points.filter((p) => p.phase === "leve").sort((x, y) => y.mesure_le.localeCompare(x.mesure_le));
+  return leves.length ? codeSuivant(leves[0].code) : "P1";
+}
+
+// Contrôle guidé : les levés pas encore contrôlés, dans l'ordre où ils ont été levés
+function aControler(points: Point[]) {
+  const controles = new Set(points.filter((p) => p.phase === "controle").map((p) => p.code.toUpperCase()));
+  return points
+    .filter((p) => p.phase === "leve" && !controles.has(p.code.toUpperCase()))
+    .sort((x, y) => x.mesure_le.localeCompare(y.mesure_le));
+}
+
 function Formulaire({ chantier: c }: { chantier: Chantier }) {
   const [phase, setPhase] = useState<Point["phase"]>("leve");
   const [systeme, setSysteme] = useState<Systeme>(c.systeme_coord);
@@ -57,14 +71,29 @@ function Formulaire({ chantier: c }: { chantier: Chantier }) {
   const [vc, setVc] = useState("");
   const [observation, setObservation] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const points = useLiveQuery(() => db.points.where("chantier_id").equals(c.id).filter((p) => !p.supprime).toArray(), [c.id], []);
+  const points = useLiveQuery(() => db.points.where("chantier_id").equals(c.id).filter((p) => !p.supprime).toArray(), [c.id]);
+  const charges = points !== undefined;
+  const liste = points ?? [];
+  // Champs enchaînés par la touche « Suivant » du clavier : Point → 1er axe → 2e → 3e → enregistrer
+  const champs = useRef<(HTMLInputElement | null)[]>([]);
+  const focaliser = (i: number) => champs.current[i]?.focus();
+
+  // Nom proposé dès l'ouverture (et au changement de phase), tant que l'opérateur ne l'a pas tapé
+  const propose = useRef(true);
+  useEffect(() => {
+    if (!charges || !propose.current) return;
+    const suivant = phase === "leve" ? prochainLeve(liste) : (aControler(liste)[0]?.code ?? "");
+    // Proposition calculée depuis la base locale, une fois chargée
+    setCode(suivant);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [charges, phase]);
 
   const [a, b, z] = SYSTEMES[systeme].axes;
   const na = lireNombre(va), nb = lireNombre(vb), nc = lireNombre(vc);
   const valide = code.trim() !== "" && na != null && nb != null && nc != null;
 
   // En contrôle : écart immédiat avec le point levé de même code
-  const leve = points.find((p) => p.phase === "leve" && p.code.toUpperCase() === code.trim().toUpperCase());
+  const leve = liste.find((p) => p.phase === "leve" && p.code.toUpperCase() === code.trim().toUpperCase());
   const borne = borneClasse(c.classe, c.tolerance_cm);
   const tolerance = borne == null ? null : c.coef_tolerance * borne;
   const ecart =
@@ -76,7 +105,7 @@ function Formulaire({ chantier: c }: { chantier: Chantier }) {
     e.preventDefault();
     if (!valide) return;
     const t = maintenant();
-    const existant = points.find((p) => p.phase === phase && p.code.toUpperCase() === code.trim().toUpperCase());
+    const existant = liste.find((p) => p.phase === phase && p.code.toUpperCase() === code.trim().toUpperCase());
     await enregistrerPoint({
       id: existant?.id ?? crypto.randomUUID(),
       org_id: c.org_id,
@@ -94,11 +123,27 @@ function Formulaire({ chantier: c }: { chantier: Chantier }) {
       sale: 1,
     });
     setMessage(`${code.trim()} ${existant ? "mis à jour" : "enregistré"}.`);
-    setCode(codeSuivant(code.trim()));
+    // Point suivant : la suite de la série en levé, le prochain levé non contrôlé en contrôle
+    const restants = aControler(liste).filter((p) => p.code.toUpperCase() !== code.trim().toUpperCase());
+    setCode(phase === "leve" ? codeSuivant(code.trim()) : (restants[0]?.code ?? ""));
+    propose.current = true;
     setVa(""); setVb(""); setVc(""); setObservation("");
+    // On reste au clavier : retour sur le premier axe pour le point suivant
+    focaliser(phase === "controle" && !restants.length ? 0 : 1);
   }
 
-  const recents = [...points].sort((x, y) => y.mesure_le.localeCompare(x.mesure_le)).slice(0, 8);
+  // « Suivant » sur le clavier : champ suivant, et sur le dernier axe, enregistrement
+  function auClavier(e: React.KeyboardEvent<HTMLInputElement>, i: number) {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    if (i < 3) focaliser(i + 1);
+    else e.currentTarget.form?.requestSubmit();
+  }
+
+  const restantsControle = aControler(liste);
+  const nbLeves = liste.filter((p) => p.phase === "leve").length;
+
+  const recents = [...liste].sort((x, y) => y.mesure_le.localeCompare(x.mesure_le)).slice(0, 8);
 
   return (
     <main className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 py-5">
@@ -109,7 +154,10 @@ function Formulaire({ chantier: c }: { chantier: Chantier }) {
       </header>
 
       <form onSubmit={enregistrer} className="flex flex-col gap-4">
-        <Choix legende="Phase" options={[{ valeur: "leve" as const, label: "Levé" }, { valeur: "controle" as const, label: "Contrôle" }]} valeur={phase} onChange={setPhase} />
+        <Choix legende="Phase" options={[{ valeur: "leve" as const, label: "Levé" }, { valeur: "controle" as const, label: "Contrôle" }]} valeur={phase} onChange={(ph) => {
+          propose.current = true;
+          setPhase(ph);
+        }} />
         <Choix
           legende="Type de coordonnées"
           options={(Object.keys(SYSTEMES) as Systeme[]).map((s) => ({ valeur: s, label: SYSTEMES[s].label }))}
@@ -117,20 +165,66 @@ function Formulaire({ chantier: c }: { chantier: Chantier }) {
           onChange={setSysteme}
           aide={SYSTEMES[systeme].aide}
         />
+        {phase === "controle" && nbLeves > 0 && (
+          <div className="carte flex items-center gap-3 p-3.5" role="status">
+            <span className="font-mono text-xl font-semibold tabular-nums">{nbLeves - restantsControle.length} / {nbLeves}</span>
+            <span className="text-sm text-encre-2">
+              {restantsControle.length ? `levés contrôlés · prochain : ${restantsControle[0].code}` : "levés contrôlés : tous les points sont contrôlés."}
+            </span>
+          </div>
+        )}
         <label className="etiquette">Point
-          <input className="champ min-h-12 font-mono text-[17px] font-normal" value={code} maxLength={60} onChange={(e) => setCode(e.target.value)} autoCapitalize="characters" required />
+          <input
+            ref={(el) => {
+              champs.current[0] = el;
+            }}
+            className="champ min-h-12 font-mono text-[17px] font-normal"
+            value={code}
+            maxLength={60}
+            onChange={(e) => {
+              propose.current = false;
+              setCode(e.target.value);
+            }}
+            onKeyDown={(e) => auClavier(e, 0)}
+            enterKeyHint="next"
+            autoCapitalize="characters"
+            required
+          />
+          <span className="text-[13px] font-normal text-encre-2">
+            {phase === "leve" ? "Proposé et numéroté tout seul. Tape un autre nom (ex. B1) pour démarrer une nouvelle série." : "Proposé dans l'ordre des levés. Tu peux en choisir un autre."}
+          </span>
         </label>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {/* En X, Y, Z les nombres sont longs (millions de mètres) et ont un bouton ± : un champ par ligne */}
+        <div className={`grid gap-3 sm:grid-cols-3 ${systeme === "XYZ" ? "grid-cols-1" : "grid-cols-2"}`}>
           {([[a, va, setVa], [b, vb, setVb], [z, vc, setVc]] as const).map(([axe, v, set], i) => (
-            <label key={axe} className={`etiquette min-w-0 ${i === 2 ? "col-span-2 sm:col-span-1" : ""}`}>{axe} (m)
-              <input
-                className={`champ min-h-12 font-mono text-[17px] font-normal ${v && lireNombre(v) == null ? "border-erreur" : ""}`}
-                inputMode="decimal"
-                value={v}
-                onChange={(e) => set(e.target.value)}
-                aria-invalid={!!v && lireNombre(v) == null}
-                required
-              />
+            <label key={axe} className={`etiquette min-w-0 ${i === 2 && systeme !== "XYZ" ? "col-span-2 sm:col-span-1" : ""}`}>{axe} (m)
+              <span className="flex gap-1.5">
+                <input
+                  ref={(el) => {
+                    champs.current[i + 1] = el;
+                  }}
+                  className={`champ min-h-12 min-w-0 flex-1 font-mono text-[17px] font-normal ${v && lireNombre(v) == null ? "border-erreur" : ""}`}
+                  inputMode="decimal"
+                  enterKeyHint={i < 2 ? "next" : "done"}
+                  onKeyDown={(e) => auClavier(e, i + 1)}
+                  value={v}
+                  onChange={(e) => set(e.target.value)}
+                  aria-invalid={!!v && lireNombre(v) == null}
+                  required
+                />
+                {/* Coordonnées géocentriques : Y est négatif à l'ouest de Greenwich, et le pavé
+                    numérique d'Android n'a pas toujours la touche « moins » */}
+                {systeme === "XYZ" && (
+                  <button
+                    type="button"
+                    onClick={() => set(v.startsWith("-") ? v.slice(1) : `-${v}`)}
+                    className="min-h-12 w-11 shrink-0 rounded-md border border-bord-fort font-mono text-lg"
+                    aria-label={`Changer le signe de ${axe}`}
+                  >
+                    ±
+                  </button>
+                )}
+              </span>
             </label>
           ))}
         </div>
