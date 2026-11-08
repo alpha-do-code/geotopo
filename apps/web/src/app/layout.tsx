@@ -27,11 +27,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="fr" className={`${plexSans.variable} ${plexMono.variable} antialiased`}>
       <head>
-        {/* Avant tout le reste : les erreurs JavaScript s'affichent sur l'écran de chargement,
-            pour qu'un démarrage raté puisse être signalé avec sa cause (capture d'écran) */}
+        {/* Avant tout le reste : les erreurs JavaScript, et les fichiers qui ne se chargent pas (phase
+            de capture), s'affichent sur l'écran de chargement : un démarrage raté se signale avec sa cause */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `window.addEventListener("error",function(e){var p=document.getElementById("gt-erreurs");if(p)p.textContent+=(e.message||"Erreur")+" ("+(e.filename||"").split("/").pop()+") ";});window.addEventListener("unhandledrejection",function(e){var p=document.getElementById("gt-erreurs");if(p)p.textContent+="Promesse : "+(e.reason&&e.reason.message||e.reason)+" ";});`,
+            __html: `(function(){function n(t){var p=document.getElementById("gt-erreurs");if(p&&p.textContent.length<600)p.textContent+=t+" · ";}window.addEventListener("error",function(e){var c=e.target;if(c&&c!==window&&(c.src||c.href)){n("Fichier non chargé : "+String(c.src||c.href).split("/").pop());return;}n((e.message||"Erreur")+" ("+String(e.filename||"").split("/").pop()+")");},true);window.addEventListener("unhandledrejection",function(e){n("Promesse : "+(e.reason&&e.reason.message||e.reason));});})();`,
           }}
         />
       </head>

@@ -86,10 +86,16 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     setOrgActiveId(id);
   }, []);
 
+  // reseau = false : équipes lues sur l'appareil seulement (démarrage immédiat, hors ligne)
   const ouvrir = useCallback(
-    async (u: Utilisateur) => {
+    async (u: Utilisateur, reseau = true) => {
       setUser(u);
-      const liste = await rechargerOrgs();
+      let liste: Organisation[];
+      if (reseau) liste = await rechargerOrgs();
+      else {
+        liste = (await lireJson<Organisation[]>(cleOrgs(u.id))) ?? [];
+        setOrgs(liste);
+      }
       const active = await lireMeta("org_active");
       const id = active && liste.some((o) => o.id === active) ? active : (liste[0]?.id ?? null);
       // Les saisies faites hors compte sur cet appareil rejoignent l'organisation active,
@@ -114,12 +120,36 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {
           setErreurDemarrage(`Base locale : ${texteErreur(e)}`);
         }
+        // Session déjà gardée sur l'appareil : l'application s'ouvre tout de suite avec les données
+        // locales, et le serveur est consulté ensuite, sans bloquer l'écran (réseau lent ou coupé).
+        if (garde && !garde.doitChangerMotDePasse) {
+          await ouvrir(garde, false);
+          if (annule) return;
+          setPret(true);
+          void (async () => {
+            try {
+              const u = await renouveler();
+              if (annule) return;
+              await ecrireMeta("utilisateur", u ? JSON.stringify(u) : null).catch(() => undefined);
+              if (!u) {
+                // Session expirée ou fermée ailleurs : retour à la connexion
+                setUser(null);
+                setOrgs([]);
+                setOrgActiveId(null);
+              } else if (u.doitChangerMotDePasse) setUser(u);
+              else await ouvrir(u);
+            } catch {
+              // Hors ligne : on continue avec ce qu'on a, la synchro reprendra au retour du réseau
+            }
+          })();
+          return;
+        }
         let u: Utilisateur | null = garde;
         try {
           u = await renouveler(8_000);
           await ecrireMeta("utilisateur", u ? JSON.stringify(u) : null).catch(() => undefined);
         } catch {
-          // Hors ligne ou réseau trop lent : on garde l'utilisateur connu de l'appareil, la synchro reprendra
+          // Hors ligne ou réseau trop lent : la synchro reprendra plus tard
         }
         if (annule) return;
         if (u?.doitChangerMotDePasse) setUser(u);
